@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-// Mengimpor koneksi Sequelize dari folder models (Menggantikan config/db lama)
 const { sequelize } = require('./models');
 
 const app = express();
@@ -27,7 +26,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/forecast', forecastRoutes);
 
-// Rute pengujian peladen (Root)
+// Rute pengujian server
 app.get('/', (req, res) => {
     res.status(200).json({ message: "Server Backend Prospera berjalan dengan baik." });
 });
