@@ -117,6 +117,9 @@ export function useTransactionLogic() {
         applyCustomDate: historyHook.applyCustomDate,
         openTransactionModal: historyHook.openTransactionModal,
         closeTransactionModal: historyHook.closeTransactionModal,
+        handleExportExcel: historyHook.handleExportExcel,
+        showReportModal: historyHook.showReportModal,
+        setShowReportModal: historyHook.setShowReportModal,
 
         // Shared
         getTransactionTypeLabel

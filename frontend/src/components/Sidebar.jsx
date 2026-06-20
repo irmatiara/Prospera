@@ -54,7 +54,7 @@ function Sidebar() {
     return (
         <>
             <aside className="sidebar d-flex flex-column justify-content-between pb-4">
-                <div className="flex-grow-1 overflow-auto custom-scrollbar" style={{ minHeight: 0 }}>
+                <div>
                     <div className="logo px-2">
                         <i className="fas fa-layer-group"/><span>Prospera</span>
                     </div>
@@ -78,7 +78,9 @@ function Sidebar() {
                             )}
                         </div>
                     )}
+                </div>
 
+                <div className="flex-grow-1 overflow-auto custom-scrollbar" style={{ minHeight: 0, marginRight: "-12px", paddingRight: "12px" }}>
                     <ul className="nav flex-column">
                         {menu.map((item) => (
                             <li className="nav-item" key={item.path}>

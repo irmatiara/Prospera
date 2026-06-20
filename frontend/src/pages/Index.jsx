@@ -1,9 +1,8 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import ModalExport from '../components/ModalExport';
 import TrendChart from '../components/TrendChart';
 import SmartExpiryWidget from '../components/SmartExpiryWidget';
-import FraudDetectionWidget from '../components/FraudDetectionWidget';
 import { apiFetch, formatError } from '../utils/api';
 import { formatRupiah } from '../utils/format';
 
@@ -76,6 +75,7 @@ function Index() {
     }, [appliedStartDate, appliedEndDate]);
 
     const totalProfit = data.summary.total_profit || 0;
+    const totalLoss = data.summary.total_loss || 0;
     const totalSales = data.summary.revenue || 0;
     const totalTrans = data.summary.total_transaction || 0;
     const margin = totalSales > 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : 0;
@@ -124,40 +124,72 @@ function Index() {
                 </div>
             </div>
             <div className="row g-4">
-                <div className="col-12">
-                    <FraudDetectionWidget />
-                    <SmartExpiryWidget />
-                </div>
                 <div className="col-lg-4 col-md-5">
-                    <div className="mb-3">
+                    <div className="mb-4">
                         <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="badge bg-secondary">Sales Summary</span>
-                            <button className="btn btn-sm btn-outline-primary px-3 fw-semibold" type="button" data-bs-toggle="modal" data-bs-target="#ModalExport">
+                            <span className="badge bg-secondary rounded-pill px-3 py-2">Sales Summary</span>
+                            <button className="btn btn-sm btn-outline-primary px-3 fw-semibold rounded-pill" type="button" data-bs-toggle="modal" data-bs-target="#ModalExport">
                                 <i className="fas fa-file-export me-1" />Export
                             </button>
                         </div>
-                        <div className="clean-card shadow-sm border-start border-secondary border-4 mb-3">
-                            <div className="text-muted small mb-1">Total Pendapatan</div>
-                            <div className="h4 fw-bold">{formatRupiah(totalSales)}</div>
+                        
+                        <div className="card border-0 shadow-sm rounded-4 p-3 mb-3 d-flex flex-row justify-content-between align-items-center">
+                            <div>
+                                <div className="text-muted small mb-1">Total Pendapatan</div>
+                                <div className="h4 fw-bold m-0 text-dark">{formatRupiah(totalSales)}</div>
+                            </div>
+                            <div className="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center" style={{width: '45px', height: '45px'}}>
+                                <i className="fas fa-wallet fs-5"></i>
+                            </div>
                         </div>
-                        <div className="clean-card shadow-sm border-start border-secondary border-4 mb-3">
-                            <div className="text-muted small mb-1">Total Transaksi</div>
-                            <div className="h4 fw-bold">{totalTrans.toLocaleString('id-ID')}</div>
-                        </div>
+
+                        <Link to="/bi-analytics" className="text-decoration-none text-dark">
+                            <div className="card border-0 shadow-sm rounded-4 p-3 mb-3 d-flex flex-row justify-content-between align-items-center card-hover-effect">
+                                <div>
+                                    <div className="text-muted small mb-1">Jumlah Transaksi</div>
+                                    <div className="h4 fw-bold m-0 text-dark">{totalTrans.toLocaleString('id-ID')}</div>
+                                </div>
+                                <i className="fas fa-chevron-right text-muted"></i>
+                            </div>
+                        </Link>
+
+                        <Link to="/smart-predict" className="text-decoration-none text-dark">
+                            <div className="card border-0 shadow-sm rounded-4 p-3 mb-3 d-flex flex-row justify-content-between align-items-center card-hover-effect">
+                                <div>
+                                    <div className="fw-bold text-dark mb-1">Deteksi Anomali / Fraud</div>
+                                    <div className="h4 fw-bold text-danger m-0">{formatRupiah(totalLoss)}</div>
+                                    <div className="text-muted small mt-1">Klik untuk melihat detail anomali</div>
+                                </div>
+                                <div className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex justify-content-center align-items-center" style={{width: '45px', height: '45px'}}>
+                                    <i className="fas fa-exclamation-triangle fs-5"></i>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <SmartExpiryWidget isDashboard={true} />
                     </div>
+
                     <div className="mb-3">
-                        <span className="badge bg-primary mb-2">Profit & Loss Tracking</span>
-                        <div className="clean-card shadow-sm border-start border-success border-4 mb-3">
-                            <div className="text-muted small mb-1">Laba Bersih</div>
-                            <div className="h4 fw-bold text-success">{formatRupiah(totalProfit)}</div>
-                        </div>
-                        <div className="clean-card shadow-sm border-start border-primary border-4 mb-3">
-                            <div className="text-muted small mb-1">Margin Keuntungan</div>
-                            <div className="h4 fw-bold text-primary">{margin}%</div>
-                        </div>
+                        <span className="badge bg-primary rounded-pill px-3 py-2 mb-2">Profit & Loss Tracking</span>
+                        
+                        <Link to="/bi-analytics" className="text-decoration-none text-dark">
+                            <div className="card border-0 shadow-sm rounded-4 p-3 mb-3 d-flex flex-row justify-content-between align-items-center card-hover-effect">
+                                <div>
+                                    <div className="text-muted small mb-1">Laporan Laba</div>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <div className="h4 fw-bold text-success m-0">{formatRupiah(totalProfit)}</div>
+                                        <span className="badge bg-info bg-opacity-10 text-info rounded-pill border border-info border-opacity-25 px-2 py-1">
+                                            <i className="fas fa-arrow-trend-up me-1"></i>{margin}% Margin
+                                        </span>
+                                    </div>
+                                    <div className="text-muted small mt-2">Klik untuk melihat rincian kalkulasi P&L</div>
+                                </div>
+                                <i className="fas fa-chevron-right text-muted"></i>
+                            </div>
+                        </Link>
                     </div>
                 </div>
-                <div className="col-lg-8 col-md-7">
+                <div className="col-lg-8 col-md-7 d-flex flex-column">
                     <ul className="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm">
                         <li className="nav-item">
                             <button className={`nav-link ${view === 'overview' ? 'active' : ''}`} type="button" onClick={() => setView('overview')}>
@@ -172,12 +204,12 @@ function Index() {
                     </ul>
 
                     {view === 'overview' ? (
-                        <>
-                            <div className="clean-card shadow-sm">
-                                <h6 className="fw-bold mb-4"><span className="badge bg-success me-2">Top</span>Top Performance Produk</h6>
+                        <div className="clean-card shadow-sm mb-3">
+                            <h6 className="fw-bold mb-4"><span className="badge bg-success me-2">Top</span>Top Performance Produk</h6>
+                            <div style={{ maxHeight: "290px", overflowY: "auto", paddingRight: "5px" }}>
                                 <div className="table-responsive">
-                                    <table className="table table-simple align-middle">
-                                        <thead>
+                                    <table className="table table-simple align-middle mb-0">
+                                        <thead style={{ position: "sticky", top: 0, backgroundColor: "#fff", zIndex: 1 }}>
                                             <tr>
                                                 <th>Produk</th>
                                                 <th>Unit</th>
@@ -186,42 +218,25 @@ function Index() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {sortedProducts.map((product) => (
-                                                <tr key={product.id}>
-                                                    <td className="fw-bold text-dark">{product.name}</td>
-                                                    <td>{product.volume.toLocaleString('id-ID')} unit</td>
-                                                    <td className="text-success fw-bold">{formatRupiah(product.profit)}</td>
-                                                    <td>
-                                                        <span className="text-primary fw-bold">
-                                                            {product.margin}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        {sortedProducts.map((product) => (
+                                            <tr key={product.id}>
+                                                <td className="fw-bold text-dark">{product.name}</td>
+                                                <td>{product.volume.toLocaleString('id-ID')} unit</td>
+                                                <td className="text-success fw-bold">{formatRupiah(product.profit)}</td>
+                                                <td>
+                                                    <span className="text-primary fw-bold">
+                                                        {product.margin}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="clean-card shadow-sm bg-light border-0 mt-4">
-                                <h6 className="fw-bold mb-3"><i className="fas fa-robot text-primary me-2" />AI Insight</h6>
-                                <div className="row">
-                                    <div className="col-md-6 border-end">
-                                        <small className="text-muted d-block mb-1">Estimasi Bulan Depan</small>
-                                        <div className="h5 fw-bold text-primary">{formatRupiah(projectedSales)}</div>
-                                    </div>
-                                    <div className="col-md-6 ps-md-4">
-                                        <small className="text-muted d-block mb-2">Saran Stok:</small>
-                                        <div className="small text-secondary">
-                                            {sortedProducts.slice(0, 2).map((product) => (
-                                                <div className="mb-1" key={product.id}>- {product.name}: +{Math.round(product.volume * 0.2)} unit</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
+                        </div>
+                    </div>
                     ) : (
-                        <div className="clean-card shadow-sm">
+                        <div className="clean-card shadow-sm mb-3">
                             <div className="d-flex justify-content-between align-items-center mb-4">
                                 <h6 className="fw-bold m-0"><span className="badge bg-info me-2">Tren</span>Tren Bisnis</h6>
                             </div>
@@ -230,6 +245,24 @@ function Index() {
                             </div>
                         </div>
                     )}
+
+                    <div className="clean-card shadow-sm bg-light border-0 mt-auto">
+                        <h6 className="fw-bold mb-3"><i className="fas fa-robot text-primary me-2" />AI Insight</h6>
+                        <div className="row">
+                            <div className="col-md-6 border-end">
+                                <small className="text-muted d-block mb-1">Estimasi Bulan Depan</small>
+                                <div className="h5 fw-bold text-primary">{formatRupiah(projectedSales)}</div>
+                            </div>
+                            <div className="col-md-6 ps-md-4">
+                                <small className="text-muted d-block mb-2">Saran Stok:</small>
+                                <div className="small text-secondary">
+                                    {sortedProducts.slice(0, 2).map((product) => (
+                                        <div className="mb-1" key={product.id}>- {product.name}: +{Math.round(product.volume * 0.2)} unit</div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <ModalExport />

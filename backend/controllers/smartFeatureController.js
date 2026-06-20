@@ -159,6 +159,7 @@ exports.getAnomalies = async (req, res) => {
                             datetime: trx.transaction_datetime,
                             cashier: trx.Cashier ? trx.Cashier.username : 'Unknown',
                             product: detail.Product ? detail.Product.product_name : 'Produk Dihapus',
+                            quantity: detail.quantity,
                             capital_cost: detail.capital_cost,
                             selling_price: detail.selling_price,
                             margin_percentage: marginPercentage.toFixed(2),

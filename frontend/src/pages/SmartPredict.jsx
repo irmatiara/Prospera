@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { apiFetch, formatError } from '../utils/api';
 import { formatRupiah } from '../utils/format';
 import ErrorMessage from '../components/ErrorMessage';
+import FraudDetectionWidget from '../components/FraudDetectionWidget';
+import SmartExpiryWidget from '../components/SmartExpiryWidget';
 
 function SmartPredict() {
     const [loading, setLoading] = useState(true);
@@ -55,28 +57,39 @@ function SmartPredict() {
     return (
         <>
             <h3 className="fw-bold mb-4">Fitur Pintar</h3>
-            <div className="row g-4 align-items-start">
-                <div className="col-md-5">
-                    <div className="simple-card shadow-sm d-flex flex-column justify-content-center" style={{ minHeight: '180px' }}>
-                        <div className="text-muted small text-uppercase fw-bold mb-2">Sales Forecasting (Harian)</div>
-                        <div className="h2 fw-bold mb-2">{formatRupiah(forecast)}</div>
-                        <div className="small text-secondary">Perkiraan pendapatan rata-rata harian berikutnya.</div>
+            <div className="row g-4">
+                {/* Left Column */}
+                <div className="col-lg-4 col-md-5">
+                    <div className="card border-0 shadow-sm rounded-4 p-3 mb-4 d-flex flex-row justify-content-between align-items-center card-hover-effect">
+                        <div>
+                            <div className="fw-bold text-dark mb-1 text-uppercase small">Sales Forecasting (Harian)</div>
+                            <div className="h4 fw-bold text-success m-0">{formatRupiah(forecast)}</div>
+                            <div className="text-muted small mt-1">Perkiraan pendapatan harian berikutnya.</div>
+                        </div>
+                        <div className="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center" style={{width: '45px', height: '45px', flexShrink: 0}}>
+                            <i className="fas fa-chart-line fs-5"></i>
+                        </div>
                     </div>
+
+                    <FraudDetectionWidget />
+                    <SmartExpiryWidget />
                 </div>
-                <div className="col-md-7">
-                    <div className="simple-card shadow-sm border-start border-danger border-4">
+
+                {/* Right Column */}
+                <div className="col-lg-8 col-md-7 d-flex flex-column">
+                    <div className="simple-card shadow-sm border-start border-danger border-4 mb-4 flex-grow-1 d-flex flex-column">
                         <div className="d-flex align-items-center mb-3">
                             <div className="bg-danger bg-opacity-10 text-danger p-2 rounded-circle me-3">
                                 <i className="fas fa-exclamation-triangle" />
                             </div>
                             <h5 className="fw-bold mb-0">Peringatan Stok Barang</h5>
                         </div>
-                        <div className="d-flex align-items-center">
+                        <div className="d-flex align-items-center flex-grow-1">
                             <div className="me-4 pe-4 border-end text-center">
                                 <div className="text-muted small mb-1">Produk Kritis</div>
                                 <div className="h2 fw-bold text-danger">{data.lowStock.length}</div>
                             </div>
-                            <div className="flex-grow-1 small"style={{ maxHeight: "220px", overflowY: "auto", paddingRight: "10px" }}>
+                            <div className="flex-grow-1 small" style={{ maxHeight: "280px", overflowY: "auto", paddingRight: "10px" }}>
                                 {data.lowStock.length > 0 ? (
                                     data.lowStock.map((item) => (
                                         <div className="alert-item d-flex justify-content-between align-items-center mb-1" key={item.product_id}>
@@ -90,13 +103,14 @@ function SmartPredict() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> {/* End Right Column */}
+
                 <div className="col-12">
-                    <div className="simple-card shadow-sm">
-                        <h5 className="fw-bold mb-4">Saran Pembelian Stok (Restock)</h5>
-                        <div className="table-responsive">
-                            <table className="table table-sm align-middle">
-                                <thead className="text-muted">
+                    <div className="clean-card shadow-sm mb-4">
+                        <h6 className="fw-bold mb-4"><span className="badge bg-primary me-2">Stok</span>Saran Pembelian Stok (Restock)</h6>
+                        <div className="table-responsive" style={{ maxHeight: "400px", overflowY: "auto" }}>
+                            <table className="table table-simple align-middle">
+                                <thead>
                                     <tr>
                                         <th>Nama Barang</th>
                                         <th>Stok Saat Ini</th>
@@ -113,9 +127,13 @@ function SmartPredict() {
                                         
                                         return (
                                             <tr key={item.product_id}>
-                                                <td><div className="fw-bold">{item.product_name}</div></td>
+                                                <td className="fw-bold text-dark">{item.product_name}</td>
                                                 <td>{item.product_stock} unit</td>
-                                                <td><span className="badge bg-primary">+{perluDipesan} unit</span></td>
+                                                <td>
+                                                    <span className="text-primary fw-bold">
+                                                        +{perluDipesan} unit
+                                                    </span>
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -123,8 +141,8 @@ function SmartPredict() {
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div> {/* End col-12 */}
+            </div> {/* End row */}
         </>
     );
 }

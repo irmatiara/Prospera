@@ -1,4 +1,5 @@
 import { formatRupiah } from '../../utils/format';
+import ReportModal from './ReportModal';
 
 export default function HistorySection({
   historySearchTerm, setHistorySearchTerm, activeTab, setActiveTab,
@@ -6,15 +7,16 @@ export default function HistorySection({
   handleDateFilterChange, customStartDate, setCustomStartDate,
   customEndDate, setCustomEndDate, applyCustomDate,
   loading, filteredHistory, getTransactionTypeLabel, openTransactionModal,
-  historyPage, historyTotalPages, historyTotalItems, fetchHistory
+  historyPage, historyTotalPages, historyTotalItems, fetchHistory, handleExportExcel,
+  showReportModal, setShowReportModal
 }) {
   return (
     <div className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
-        <h3 style={{ margin: 0 }}>Riwayat Transaksi</h3>
+      <div style={{ marginBottom: "16px" }}>
+        <h3 style={{ margin: 0, marginBottom: "16px", color: "#1F2937" }}>Riwayat Transaksi</h3>
         
-        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-          
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <div>
           <input 
             className="input" 
             placeholder="🔍 Cari produk..." 
@@ -22,6 +24,9 @@ export default function HistorySection({
             value={historySearchTerm}
             onChange={(e) => setHistorySearchTerm(e.target.value)}
           />
+        </div>
+        
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
 
           <div style={{ display: "flex", gap: "8px", background: "#F3F4F6", padding: "4px", borderRadius: "10px" }}>
             <button onClick={() => setActiveTab("ALL")} style={{ padding: "6px 16px", border: "none", background: activeTab === "ALL" ? "white" : "transparent", color: activeTab === "ALL" ? "#1F2937" : "#6B7280", borderRadius: "8px", fontWeight: "600", cursor: "pointer", boxShadow: activeTab === "ALL" ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.2s" }}>Semua</button>
@@ -65,7 +70,17 @@ export default function HistorySection({
               </div>
             )}
           </div>
+          
+          <button 
+            onClick={() => setShowReportModal(true)}
+            className="button"
+            style={{ background: "#4F46E5", color: "white", border: "none", display: "flex", alignItems: "center", gap: "8px", padding: "6px 16px", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+            title="Lihat Rekapitulasi Laporan dan Export ke Excel"
+          >
+            📄 Rekap Laporan
+          </button>
         </div>
+      </div>
       </div>
 
       {loading ? (
@@ -133,6 +148,12 @@ export default function HistorySection({
           )}
         </div>
       )}
+
+      <ReportModal 
+        isOpen={showReportModal} 
+        onClose={() => setShowReportModal(false)} 
+        onExport={handleExportExcel} 
+      />
     </div>
   );
 }

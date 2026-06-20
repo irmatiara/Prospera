@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getExpiringProducts, applyMarkdown, formatError } from '../utils/api';
 import { formatRupiah } from '../utils/format';
 
-function SmartExpiryWidget() {
+function SmartExpiryWidget({ isDashboard = false }) {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -81,55 +82,95 @@ function SmartExpiryWidget() {
         return null;
     }
 
+    const cardContent = (
+        <div 
+            className="card border-0 shadow-sm rounded-4 p-3 mb-3 d-flex flex-row justify-content-between align-items-center card-hover-effect" 
+            style={{ cursor: 'pointer' }}
+            {...(!isDashboard ? { 'data-bs-toggle': 'modal', 'data-bs-target': '#ExpiryModal' } : {})}
+        >
+            <div>
+                <div className="fw-bold text-dark mb-1">Peringatan Kedaluwarsa</div>
+                <div className="h5 fw-bold text-warning m-0">{products.length} Produk Mendekati Expired</div>
+                <div className="text-muted small mt-1">Klik untuk melihat detail produk</div>
+            </div>
+            <div className="bg-warning bg-opacity-10 text-warning rounded-circle d-flex justify-content-center align-items-center" style={{width: '45px', height: '45px'}}>
+                <i className="fas fa-calendar-times fs-5"></i>
+            </div>
+        </div>
+    );
+
+    if (isDashboard) {
+        return (
+            <Link to="/smart-predict" className="text-decoration-none text-dark">
+                {cardContent}
+            </Link>
+        );
+    }
+
     return (
-        <div className="card shadow-sm border-start border-warning border-4 mb-4">
-            <div className="card-body">
-                <h5 className="card-title text-warning fw-bold mb-3">
-                    <i className="fas fa-exclamation-triangle me-2"></i>Peringatan Kedaluwarsa (Smart Expiry)
-                </h5>
-                <div className="table-responsive">
-                    <table className="table table-hover align-middle mb-0">
-                        <thead className="table-light">
-                            <tr>
-                                <th>Produk</th>
-                                <th>Kedaluwarsa</th>
-                                <th>Stok</th>
-                                <th>Harga Saat Ini</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {products.map(p => (
-                                <tr key={p.product_id}>
-                                    <td>
-                                        <div className="fw-semibold">{p.product_name}</div>
-                                        <div className="text-muted small">{p.Category?.category_name || '-'}</div>
-                                    </td>
-                                    <td>
-                                        <div className={`fw-bold ${p.days_left <= 14 ? 'text-danger' : 'text-warning'}`}>
-                                            {p.expired_date} ({p.days_left} hari lagi)
-                                        </div>
-                                    </td>
-                                    <td>{p.product_stock}</td>
-                                    <td>{formatRupiah(p.product_price)}</td>
-                                    <td>
-                                        <button 
-                                            onClick={() => handleOpenModal(p)}
-                                            className="btn btn-sm btn-outline-warning fw-semibold"
-                                        >
-                                            <i className="fas fa-tags me-1"></i>Terapkan Diskon
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+        <div className="mb-4">
+            {cardContent}
+
+            {/* The Modal */}
+            <div className="modal fade" id="ExpiryModal" tabIndex="-1" aria-labelledby="ExpiryModalLabel" aria-hidden="true">
+                <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-content border-0 shadow">
+                        <div className="modal-header bg-warning text-dark border-0">
+                            <h5 className="modal-title fw-bold" id="ExpiryModalLabel">
+                                <i className="fas fa-exclamation-triangle me-2"></i>Peringatan Kedaluwarsa (Smart Expiry)
+                            </h5>
+                            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div className="modal-body p-4">
+                            <div className="table-responsive">
+                                <table className="table table-hover align-middle mb-0">
+                                    <thead className="table-light">
+                                        <tr>
+                                            <th>Produk</th>
+                                            <th>Kedaluwarsa</th>
+                                            <th>Stok</th>
+                                            <th>Harga Saat Ini</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(p => (
+                                            <tr key={p.product_id}>
+                                                <td>
+                                                    <div className="fw-semibold">{p.product_name}</div>
+                                                    <div className="text-muted small">{p.Category?.category_name || '-'}</div>
+                                                </td>
+                                                <td>
+                                                    <div className={`fw-bold ${p.days_left <= 14 ? 'text-danger' : 'text-warning'}`}>
+                                                        {p.expired_date} ({p.days_left} hari lagi)
+                                                    </div>
+                                                </td>
+                                                <td>{p.product_stock}</td>
+                                                <td>{formatRupiah(p.product_price)}</td>
+                                                <td>
+                                                    <button 
+                                                        onClick={() => handleOpenModal(p)}
+                                                        className="btn btn-sm btn-outline-warning fw-semibold"
+                                                    >
+                                                        <i className="fas fa-tags me-1"></i>Terapkan Diskon
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="modal-footer border-top bg-light">
+                            <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Modal Diskon */}
             {showModal && selectedProduct && (
-                <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+                <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} tabIndex="-1">
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
                             <div className="modal-header">

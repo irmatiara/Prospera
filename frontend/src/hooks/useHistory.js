@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { apiFetch, formatError } from "../utils/api";
+import { apiFetch, formatError, API_BASE_URL } from "../utils/api";
 import { getTransactionTypeLabel } from "../utils/transactionHelpers";
 
 export function useHistory() {
@@ -37,6 +37,9 @@ export function useHistory() {
     // Detail modal
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
+
+    // Report modal
+    const [showReportModal, setShowReportModal] = useState(false);
 
     const fetchHistory = async (type = dateFilterType, start = customStartDate, end = customEndDate, page = 1) => {
         setLoading(true);
@@ -106,6 +109,44 @@ export function useHistory() {
         setShowTransactionModal(false);
     };
 
+    const handleExportExcel = async (start, end) => {
+        try {
+            let url = "/transactions/export";
+            let queryParams = [];
+            if (start && end) {
+                queryParams.push(`start=${start}`);
+                queryParams.push(`end=${end}`);
+            }
+
+            if (queryParams.length > 0) {
+                url += `?${queryParams.join('&')}`;
+            }
+
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}${url}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Gagal mengunduh file Excel");
+            }
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `Laporan_Transaksi_${start || 'All'}_to_${end || 'All'}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            setFetchError(formatError(error));
+        }
+    };
+
     // PERFORMANCE FIX (F-S19): Memoize filtered history (O(N×M) computation)
     const filteredHistory = useMemo(() => {
         return history.filter((tx) => {
@@ -128,6 +169,7 @@ export function useHistory() {
         selectedTransaction, showTransactionModal,
         handleDateFilterChange, applyCustomDate,
         openTransactionModal, closeTransactionModal,
-        filteredHistory
+        filteredHistory, handleExportExcel,
+        showReportModal, setShowReportModal
     };
 }

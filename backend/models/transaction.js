@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true
     },
     total_amount: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
       defaultValue: 0
     },

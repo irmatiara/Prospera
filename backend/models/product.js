@@ -14,11 +14,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     product_cost: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false
     },
     product_price: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false
     },
     product_stock: {

@@ -19,6 +19,8 @@ export default function Products() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editData, setEditData] = useState(null);
   const [message, setMessage] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,6 +50,19 @@ export default function Products() {
     window.addEventListener("focus", fetchProducts);
     return () => window.removeEventListener("focus", fetchProducts);
   }, [fetchProducts]);
+
+  // Fetch categories for filter
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await apiFetch("/categories");
+        setCategories(data.categories || []);
+      } catch (err) {
+        console.error("Gagal memuat kategori:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleSave = async (payload) => {
     if (selectedProduct) {
@@ -136,6 +151,9 @@ export default function Products() {
           products={products}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
           role={role}
           onEdit={handleEdit}
           onDelete={handleDelete}

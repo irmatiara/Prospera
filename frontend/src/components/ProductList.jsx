@@ -5,26 +5,45 @@
 import { useMemo } from 'react';
 import { formatRupiah } from '../utils/format';
 
-export default function ProductList({ products, searchTerm, onSearchChange, role, onEdit, onDelete, pagination, onPageChange }) {
+export default function ProductList({ products, searchTerm, onSearchChange, categories, selectedCategory, onCategoryChange, role, onEdit, onDelete, pagination, onPageChange }) {
     // PERFORMANCE FIX (F-S17): Memoize filter agar tidak dihitung ulang setiap render
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            const nameMatch = (p.product_name || "").toLowerCase().includes(searchTerm.toLowerCase());
+            const nameMatch = (p.product_name || p.name || "").toLowerCase().includes(searchTerm.toLowerCase());
             const idMatch = String(p.product_id || p.id).includes(searchTerm);
-            return nameMatch || idMatch;
+            const categoryMatch = selectedCategory === "ALL" || String(p.category_id || p.category_id_fk) === String(selectedCategory);
+            return (nameMatch || idMatch) && categoryMatch;
         });
-    }, [products, searchTerm]);
+    }, [products, searchTerm, selectedCategory]);
 
     return (
         <div className="card">
-            <div className="product-list-header">
-                <h3>Daftar Produk</h3>
-                <input 
-                    className="input product-search" 
-                    placeholder="🔍 Cari nama atau ID produk..." 
-                    value={searchTerm}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                />
+            <div style={{ marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, marginBottom: "16px", color: "#1F2937" }}>Daftar Produk</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                        <input 
+                            className="input product-search" 
+                            placeholder="🔍 Cari nama atau ID produk..." 
+                            style={{ width: "250px", padding: "6px 12px" }}
+                            value={searchTerm}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <select 
+                            className="input" 
+                            style={{ padding: "6px 12px", minWidth: "180px", cursor: "pointer" }}
+                            value={selectedCategory} 
+                            onChange={(e) => onCategoryChange(e.target.value)}
+                        >
+                            <option value="ALL">-- Semua Kategori --</option>
+                            {categories && categories.map(cat => (
+                                <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             </div>
 
             {filteredProducts.length > 0 ? (

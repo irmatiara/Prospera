@@ -247,9 +247,9 @@ function BiAnalytics() {
                     {view === 'list' && (
                         <div className="card border-0 shadow-sm p-4 bg-white rounded">
                             <h5 className="fw-bold mb-4"><span className="badge bg-success me-2">Top</span>Performa Penjualan Barang</h5>
-                            <div className="table-responsive">
-                                <table className="table table-borderless align-middle">
-                                    <thead className="bg-light">
+                            <div className="table-responsive" style={{ maxHeight: "390px", overflowY: "auto", paddingRight: "5px" }}>
+                                <table className="table table-borderless align-middle mb-0">
+                                    <thead className="bg-light" style={{ position: "sticky", top: 0, zIndex: 1 }}>
                                         <tr className="small text-muted text-uppercase">
                                             <th>Nama Barang</th>
                                             <th className="text-center">Volume</th>
@@ -275,12 +275,12 @@ function BiAnalytics() {
                     )}
 
                     {view === 'chart' && (
-                        <div className="card border-0 shadow-sm p-4 bg-white rounded h-100">
+                        <div className="card border-0 shadow-sm p-4 bg-white rounded">
                             <div className="mb-4">
                                 <h5 className="fw-bold"><span className="badge bg-info me-2">Tren</span>Grafik Penjualan & Laba</h5>
                                 <small className="text-muted">Menampilkan perbandingan total omzet dan untung bersih dari bulan ke bulan.</small>
                             </div>
-                            <div className="chart-container" style={{ height: '100%', minHeight: '300px' }}>
+                            <div className="chart-container" style={{ minHeight: '350px' }}>
                                 <TrendChart labels={trend.labels} sales={trend.data} profit={trend.laba} salesLabel="Penjualan" />
                             </div>
                         </div>

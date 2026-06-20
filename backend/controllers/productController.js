@@ -79,6 +79,14 @@ const createProduct = async (req, res, next) => {
             return res.status(400).json({ message: "Stok tidak boleh negatif." });
         }
 
+        // Validasi Kategori: Apakah mewajibkan Tanggal Kedaluwarsa?
+        if (category_id_fk) {
+            const category = await Category.findByPk(category_id_fk);
+            if (category && category.requires_expired_date && !expired_date) {
+                return res.status(400).json({ message: `Produk dalam kategori "${category.category_name}" wajib memiliki Tanggal Kedaluwarsa.` });
+            }
+        }
+
         // Cek duplikasi nama produk (logika bisnis, tetap di controller)
         const existingProduct = await Product.findOne({
             where: {
@@ -122,6 +130,14 @@ const updateProduct = async (req, res, next) => {
         }
         if (Number(product_stock) < 0) {
             return res.status(400).json({ message: "Stok tidak boleh negatif." });
+        }
+
+        // Validasi Kategori: Apakah mewajibkan Tanggal Kedaluwarsa?
+        if (category_id_fk) {
+            const category = await Category.findByPk(category_id_fk);
+            if (category && category.requires_expired_date && !expired_date) {
+                return res.status(400).json({ message: `Produk dalam kategori "${category.category_name}" wajib memiliki Tanggal Kedaluwarsa.` });
+            }
         }
 
         // Cek duplikasi nama produk dengan mengecualikan produk ini sendiri

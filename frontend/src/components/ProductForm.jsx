@@ -69,6 +69,12 @@ export default function ProductForm({ selectedProduct, initialData, onSave, onCa
             return;
         }
 
+        const selectedCategory = categories.find(cat => cat.category_id == categoryId);
+        if (selectedCategory && selectedCategory.requires_expired_date && !expiredDate) {
+            setFormMessage(`Kategori "${selectedCategory.category_name}" mewajibkan input Tanggal Kedaluwarsa.`);
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await onSave({

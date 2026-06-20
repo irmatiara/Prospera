@@ -30,7 +30,7 @@ const getSummary = async (req, res, next) => {
         ]);
 
         const { success, total_transaction_all } = statusBreakdown;
-        const { items_sold, revenue, total_profit } = financial;
+        const { items_sold, revenue, total_profit, total_loss } = financial;
         const average_sale = success > 0 ? Math.round(revenue / success) : 0;
 
         // Revenue growth (logika unik untuk endpoint ini, tetap inline)
@@ -58,19 +58,21 @@ const getSummary = async (req, res, next) => {
 
             const prev_revenue = parseFloat(prevFinancialData[0]?.prev_revenue) || 0;
 
-            if (prev_revenue === 0 && revenue > 0) {
-                revenue_growth = "+100%";
-            } else if (prev_revenue > 0) {
-                const growthCalc = ((revenue - prev_revenue) / prev_revenue) * 100;
-                const sign = growthCalc > 0 ? "+" : "";
-                revenue_growth = `${sign}${Math.round(growthCalc)}%`;
-            } else {
-                revenue_growth = "0%";
+            if (prev_revenue > 0) {
+                revenue_growth = (((revenue - prev_revenue) / prev_revenue) * 100).toFixed(1) + "%";
             }
         }
 
         res.json({
-            summary: { total_transaction: total_transaction_all, items_sold, revenue, total_profit, average_sale, revenue_growth },
+            summary: { 
+                total_transaction: total_transaction_all, 
+                items_sold, 
+                revenue, 
+                total_profit, 
+                total_loss,
+                average_sale, 
+                revenue_growth 
+            },
             status_breakdown: { success: statusBreakdown.success, pending: statusBreakdown.pending, cancelled: statusBreakdown.cancelled },
             details: formattedDetails
         });

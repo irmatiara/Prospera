@@ -17,7 +17,7 @@ module.exports = {
     },
     API_RATE_LIMIT: {
         windowMs: 15 * 60 * 1000, // 15 menit
-        max: 100,                 // Maksimal 100 request per jendela waktu
+        max: 500,                 // Dinaikkan menjadi 500 untuk pengembangan/penggunaan normal
         standardHeaders: true,
         legacyHeaders: false,
         message: {

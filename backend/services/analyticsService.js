@@ -57,7 +57,8 @@ const getFinancialSummary = async (startDate, endDate, userId) => {
         attributes: [
             [fn('SUM', col('quantity')), 'items_sold'],
             [literal(`SUM(selling_price * quantity)`), 'revenue'],
-            [literal(`SUM(CASE WHEN selling_price > capital_cost THEN (selling_price - capital_cost) * quantity ELSE 0 END)`), 'total_profit']
+            [literal(`SUM(CASE WHEN selling_price > capital_cost THEN (selling_price - capital_cost) * quantity ELSE 0 END)`), 'total_profit'],
+            [literal(`SUM(CASE WHEN selling_price < capital_cost THEN (capital_cost - selling_price) * quantity ELSE 0 END)`), 'total_loss']
         ],
         raw: true
     });
@@ -66,7 +67,8 @@ const getFinancialSummary = async (startDate, endDate, userId) => {
     return {
         items_sold: parseInt(fin.items_sold) || 0,
         revenue: parseFloat(fin.revenue) || 0,
-        total_profit: parseFloat(fin.total_profit) || 0
+        total_profit: parseFloat(fin.total_profit) || 0,
+        total_loss: parseFloat(fin.total_loss) || 0
     };
 };
 

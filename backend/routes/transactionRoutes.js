@@ -8,11 +8,13 @@ const { validateTransaction } = require('../middleware/validationMiddleware');
 const { checkTimeAccess } = require('../middleware/timeAccessControl');
 
 // Import fungsi dari Controller
-const { createTransaction, getTransactionHistory } = require('../controllers/transactionController');
+const { createTransaction, getTransactionHistory, exportTransactionHistory, getTransactionSummary } = require('../controllers/transactionController');
 
 // SECURITY FIX (B-S23): Terapkan RBAC ketat pada endpoint transaksi
 // Hanya role 'owner' dan 'karyawan' yang diizinkan — mencegah role tak terduga mengakses endpoint ini
 router.post('/checkout', verifyToken, authorizeRole('owner', 'karyawan'), checkTimeAccess, validateTransaction, createTransaction);
 router.get('/history', verifyToken, authorizeRole('owner', 'karyawan'), getTransactionHistory);
+router.get('/export', verifyToken, authorizeRole('owner', 'karyawan'), exportTransactionHistory);
+router.get('/summary', verifyToken, authorizeRole('owner', 'karyawan'), getTransactionSummary);
 
 module.exports = router;
