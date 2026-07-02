@@ -80,8 +80,8 @@ app.use(cookieParser());
 app.use(cors({
     // Daftarkan link lokal dan link Vercel kamu di sini agar tidak diblokir
     origin: [
-        'http://localhost:5173', 
-        'http://127.0.0.1:5173', 
+        'http://localhost:5173',
+        'https://prospera-p7yhwoyjf-project-irma.vercel.app', // Tambahkan yang baru ini
         'https://prospera-cdhoqccr4-project-irma.vercel.app',
         'https://prospera-phi-blue.vercel.app' 
     ],
