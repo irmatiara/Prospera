@@ -76,10 +76,16 @@ const login = async (req, res, next) => {
         );
 
         // Injeksi JWT ke dalam HttpOnly Cookie (Anti-XSS & Anti-CSRF)
+        // res.cookie('jwt', token, {
+        //     httpOnly: true,
+        //     secure: process.env.NODE_ENV === 'production',
+        //     sameSite: 'Lax', // Cross-port CSRF protection
+        //     maxAge: 24 * 60 * 60 * 1000 // 1 Hari
+        // });
         res.cookie('jwt', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Lax', // Cross-port CSRF protection
+            secure: true,       // WAJIB true jika sameSite 'none' (HTTPS)
+            sameSite: 'none',   // UBAH DARI 'Lax' MENJADI 'none'
             maxAge: 24 * 60 * 60 * 1000 // 1 Hari
         });
 
