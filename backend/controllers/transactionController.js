@@ -365,19 +365,16 @@ const exportTransactionHistory = async (req, res, next) => {
             { header: 'Nama Kasir', key: 'cashier', width: 20 },
             { header: 'Status Transaksi', key: 'status', width: 18 },
             { header: 'Metode Pembayaran', key: 'payment_method', width: 20 },
-            { header: 'Nama Produk', key: 'product_name', width: 30 },
-            { header: 'Kategori', key: 'category', width: 20 },
-            { header: 'Harga Jual', key: 'selling_price', width: 15 },
-            { header: 'Qty Terjual', key: 'quantity', width: 12 },
-            { header: 'Subtotal Harga', key: 'sub_total', width: 18 }
+            { header: 'Detail Produk Terjual', key: 'product_details', width: 50 },
+            { header: 'Total Belanja', key: 'total_belanja', width: 18 }
         ];
 
         // Jika Owner, tambahkan kolom sensitif
         if (isOwner) {
-            columns.splice(8, 0, { header: 'Harga Modal', key: 'capital_cost', width: 15 });
+            columns.splice(7, 0, { header: 'Total Harga Modal', key: 'total_capital', width: 20 });
             columns.push(
-                { header: 'Total Laba Nominal', key: 'total_laba', width: 20 },
-                { header: 'Margin Keuntungan', key: 'margin', width: 18 }
+                { header: 'Total Laba', key: 'total_laba', width: 18 },
+                { header: 'Margin (%)', key: 'margin', width: 15 }
             );
         }
 
@@ -479,71 +476,74 @@ const exportTransactionHistory = async (req, res, next) => {
                 // FIX (BUG-02): Gunakan moment-timezone yang konsisten dengan seluruh codebase.
                 // SEBELUMNYA: Intl.DateTimeFormat berpotensi double-shift jika MySQL session timezone
                 //             WIB (data masuk sebagai string WIB, di-parse Node.js sebagai UTC,
-                //             lalu Intl menambah +7 lagi → waktu maju 7 jam ke hari berikutnya).
-                // SESUDAH   : moment.tz(value, 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta') menangani string 
-                //             WIB dari DB dengan benar, mencegah pergeseran 7 jam ganda di server Railway.
                 const dateStr = tx.transaction_datetime
                     ? moment.utc(tx.transaction_datetime).format('DD/MM/YYYY HH:mm:ss')
                     : '-';
-                
                 const typeStr = tx.transaction_type === 'sell' ? 'Penjualan' : 'Restock';
                 const statusStr = tx.status === 'success' ? 'Sukses' : (tx.status === 'cancelled' ? 'Dibatalkan' : tx.status);
                 const cashierName = sanitizeCSV(tx.Cashier ? tx.Cashier.username : 'Sistem');
                 const paymentMethod = 'Tunai';
 
+                let productDetails = [];
+                let totalModal = 0;
+                let totalOmzet = Number(tx.total_amount) || 0;
+
                 tx.TransactionDetails.forEach((detail) => {
-                    const productName = sanitizeCSV(detail.Product ? detail.Product.product_name : 'Produk Dihapus');
-                    const categoryName = sanitizeCSV((detail.Product && detail.Product.Category) ? detail.Product.Category.category_name : 'Tanpa Kategori');
+                    const name = sanitizeCSV(detail.Product ? detail.Product.product_name : 'Produk Dihapus');
+                    const qty = Number(detail.quantity) || 0;
+                    productDetails.push(`${name} (${qty}x)`);
                     
-                    let totalLaba = 0;
-                    let marginVal = 0;
                     if (tx.transaction_type === 'sell' && tx.status === 'success') {
-                        totalLaba = (detail.selling_price - detail.capital_cost) * detail.quantity;
-                        const margin = ((detail.selling_price - detail.capital_cost) / detail.capital_cost);
-                        marginVal = isFinite(margin) ? margin : 0;
-                    }
-
-                    const rowData = {
-                        transaction_id: `#TRX-${tx.transaction_id}`,
-                        datetime: dateStr,
-                        type: typeStr,
-                        cashier: cashierName,
-                        status: statusStr,
-                        payment_method: paymentMethod,
-                        product_name: productName,
-                        category: categoryName,
-                        selling_price: Number(detail.selling_price) || 0,
-                        quantity: Number(detail.quantity) || 0,
-                        sub_total: Number(detail.sub_total) || 0
-                    };
-
-                    if (isOwner) {
-                        rowData.capital_cost = Number(detail.capital_cost) || 0;
-                        rowData.total_laba = Number(totalLaba) || 0;
-                        rowData.margin = Number(marginVal) || 0;
-                    }
-
-                    if (format === 'csv') {
-                        // Tulis baris CSV secara manual (streaming)
-                        const rowArray = columns.map(c => rowData[c.key]);
-                        const rowString = rowArray.map(escapeCSV).join(';') + '\n';
-                        res.write(rowString);
-                    } else {
-                        const row = worksheet.addRow(rowData);
-                        const currencyFmt = '[$Rp-421]#,##0';
-                        
-                        // FIX: Timpa objek style secara keseluruhan agar direkam ke XML oleh Stream
-                        row.getCell('selling_price').style = { numFmt: currencyFmt };
-                        row.getCell('sub_total').style = { numFmt: currencyFmt };
-                        if (isOwner) {
-                            row.getCell('capital_cost').style = { numFmt: currencyFmt };
-                            row.getCell('total_laba').style = { numFmt: currencyFmt };
-                            row.getCell('margin').style = { numFmt: '0.0%', alignment: { horizontal: 'center' } };
-                        }
-                        
-                        row.commit();
+                        totalModal += (Number(detail.capital_cost) || 0) * qty;
                     }
                 });
+
+                const detailString = productDetails.join(', ');
+                
+                let totalLaba = 0;
+                let marginVal = 0;
+                
+                if (tx.transaction_type === 'sell' && tx.status === 'success') {
+                    totalLaba = totalOmzet - totalModal;
+                    const margin = (totalOmzet - totalModal) / (totalModal || 1);
+                    marginVal = isFinite(margin) ? margin : 0;
+                }
+
+                const rowData = {
+                    transaction_id: `#TRX-${tx.transaction_id}`,
+                    datetime: dateStr,
+                    type: typeStr,
+                    cashier: cashierName,
+                    status: statusStr,
+                    payment_method: paymentMethod,
+                    product_details: detailString,
+                    total_belanja: totalOmzet
+                };
+
+                if (isOwner) {
+                    rowData.total_capital = totalModal;
+                    rowData.total_laba = totalLaba;
+                    rowData.margin = marginVal;
+                }
+
+                if (format === 'csv') {
+                    // Tulis baris CSV secara manual (streaming)
+                    const rowArray = columns.map(c => rowData[c.key]);
+                    const rowString = rowArray.map(escapeCSV).join(';') + '\n';
+                    res.write(rowString);
+                } else {
+                    const row = worksheet.addRow(rowData);
+                    const currencyFmt = '[$Rp-421]#,##0';
+                    const pctFmt = '0.00%';
+                    
+                    row.getCell('total_belanja').style = { numFmt: currencyFmt };
+                    if (isOwner) {
+                        row.getCell('total_capital').style = { numFmt: currencyFmt };
+                        row.getCell('total_laba').style = { numFmt: currencyFmt };
+                        row.getCell('margin').style = { numFmt: pctFmt };
+                    }
+                    row.commit();
+                }
             });
 
         offset += batchSize;
