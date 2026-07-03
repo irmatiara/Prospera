@@ -51,8 +51,11 @@ export function useHistory() {
             const today = new Date();
 
             if (type === "TODAY") {
-                const offset = today.getTimezoneOffset() * 60000;
-                const localDate = (new Date(today - offset)).toISOString().split('T')[0];
+                // FIX (BUG-B05): Ganti getTimezoneOffset() browser dengan Intl.DateTimeFormat WIB eksplisit.
+                // Sebelumnya: getTimezoneOffset() mengembalikan offset timezone OS browser — bukan WIB.
+                // Jika browser di-set UTC (common di laptop kantor via IT policy), tanggal berbeda 7 jam.
+                // Locale 'sv-SE' dipilih karena outputnya selalu YYYY-MM-DD (ISO date) — tanpa library.
+                const localDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(today);
                 queryParams.push(`start=${localDate}`);
                 queryParams.push(`end=${localDate}`);
             } else if (type === "MONTH") {

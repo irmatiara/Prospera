@@ -109,9 +109,16 @@ const createProduct = async (req, res, next) => {
         }
 
         // Validasi Kategori: Apakah mewajibkan Tanggal Kedaluwarsa?
+        // FIX (BUG-B02): Ganti findByPk dengan findOne + filter user_id_fk untuk mencegah
+        // IDOR cross-tenant — sebelumnya owner bisa menggunakan category_id milik toko lain.
         if (category_id_fk) {
-            const category = await Category.findByPk(category_id_fk);
-            if (category && category.requires_expired_date && !expired_date) {
+            const category = await Category.findOne({
+                where: { category_id: category_id_fk, user_id_fk: userId }
+            });
+            if (!category) {
+                return res.status(400).json({ message: "Kategori tidak ditemukan atau bukan milik toko Anda." });
+            }
+            if (category.requires_expired_date && !expired_date) {
                 return res.status(400).json({ message: `Produk dalam kategori "${category.category_name}" wajib memiliki Tanggal Kedaluwarsa.` });
             }
         }
@@ -167,9 +174,15 @@ const updateProduct = async (req, res, next) => {
         }
 
         // Validasi Kategori: Apakah mewajibkan Tanggal Kedaluwarsa?
+        // FIX (BUG-B02): Ganti findByPk dengan findOne + filter user_id_fk (konsisten dengan createProduct).
         if (category_id_fk) {
-            const category = await Category.findByPk(category_id_fk);
-            if (category && category.requires_expired_date && !expired_date) {
+            const category = await Category.findOne({
+                where: { category_id: category_id_fk, user_id_fk: userId }
+            });
+            if (!category) {
+                return res.status(400).json({ message: "Kategori tidak ditemukan atau bukan milik toko Anda." });
+            }
+            if (category.requires_expired_date && !expired_date) {
                 return res.status(400).json({ message: `Produk dalam kategori "${category.category_name}" wajib memiliki Tanggal Kedaluwarsa.` });
             }
         }

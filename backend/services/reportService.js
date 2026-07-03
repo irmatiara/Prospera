@@ -27,7 +27,7 @@ class ExcelReport extends BaseReport {
             useStyles: true,
             useSharedStrings: true
         });
-        const headerRowIndex = this.isOwner ? 14 : 13;
+        const headerRowIndex = this.isOwner ? 17 : 13;
         const sheet = workbook.addWorksheet('Laporan Prospera', {
             views: [{ state: 'frozen', ySplit: headerRowIndex, xSplit: 0 }]
         });
@@ -73,8 +73,20 @@ class ExcelReport extends BaseReport {
         });
         
         if (this.isOwner) {
-            writeRow(['Total Profit', Number(this.summary.total_profit) || 0], (row) => {
+            writeRow(['Laba Kotor', Number(this.summary.total_profit) || 0], (row) => {
                 row.getCell(2).style = { numFmt: '[$Rp-421]#,##0' };
+            });
+            writeRow(['(-) Defisit Markdown', Number(this.summary.total_loss) || 0], (row) => {
+                row.getCell(2).style = { numFmt: '[$Rp-421]#,##0' };
+                row.getCell(1).font = { color: { argb: 'FFFF0000' } };
+            });
+            writeRow(['(-) Kerugian Kedaluwarsa', Number(this.summary.spoilage_loss) || 0], (row) => {
+                row.getCell(2).style = { numFmt: '[$Rp-421]#,##0' };
+                row.getCell(1).font = { color: { argb: 'FFFF0000' } };
+            });
+            writeRow(['Laba Bersih', Number(this.summary.net_profit) || 0], (row) => {
+                row.getCell(2).style = { numFmt: '[$Rp-421]#,##0' };
+                row.font = { bold: true };
             });
         }
         writeRow([]);
@@ -126,7 +138,11 @@ class ExcelReport extends BaseReport {
                 ];
 
                 if (this.isOwner) {
-                    const marginDec = parseFloat(item.margin.replace('%', '')) / 100;
+                    // FIX (BUG-B04): Guard terhadap margin null/undefined/non-string.
+                    // item.margin bisa null jika produk belum pernah terjual di rentang tanggal tsb.
+                    // Sebelumnya: item.margin.replace('%','') → TypeError crash → file Excel corrupt.
+                    const marginStr = (item.margin || '0%').toString().replace('%', '');
+                    const marginDec = parseFloat(marginStr) / 100;
                     rowData.push(Number(item.profit) || 0, isNaN(marginDec) ? 0 : Number(marginDec));
                 }
 
@@ -179,7 +195,10 @@ class CsvReport extends BaseReport {
         writeRow(['Produk Terjual', Number(this.summary.items_sold) || 0]);
         writeRow(['Total Omzet', Number(this.summary.revenue) || 0]);
         if (this.isOwner) {
-            writeRow(['Total Profit', Number(this.summary.total_profit) || 0]);
+            writeRow(['Laba Kotor', Number(this.summary.total_profit) || 0]);
+            writeRow(['(-) Defisit Markdown', Number(this.summary.total_loss) || 0]);
+            writeRow(['(-) Kerugian Kedaluwarsa', Number(this.summary.spoilage_loss) || 0]);
+            writeRow(['Laba Bersih', Number(this.summary.net_profit) || 0]);
         }
         writeRow([]);
         
@@ -221,7 +240,9 @@ class CsvReport extends BaseReport {
                 ];
 
                 if (this.isOwner) {
-                    rowData.push(item.profit, item.margin.replace('%', ''));
+                    // FIX (BUG-B04): Guard terhadap margin null/undefined/non-string (konsisten dengan ExcelReport).
+                    const marginStr = (item.margin || '0%').toString().replace('%', '');
+                    rowData.push(item.profit, marginStr);
                 }
                 
                 writeRow(rowData);

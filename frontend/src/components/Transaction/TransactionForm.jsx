@@ -10,6 +10,10 @@ import { formatRupiah } from "../../utils/format";
  * - Validasi qty (isNegativeOrZero, isOverStock, isFatFinger) tidak diubah
  * - Total kalkulasi (totalModal, totalHargaJual) tidak diubah
  * - Semua props interface tidak diubah — Transaction.jsx tidak perlu dimodifikasi
+ *
+ * FIX (BUG-10): Field datetime tidak dirender karena backend mengontrol timestamp
+ * server-side (serverDatetime = new Date() di transactionController.js).
+ * Props datetime/setDatetime dipertahankan untuk backward-compatibility hook.
  */
 export default function TransactionForm({
   searchTerm, setSearchTerm, isDropdownOpen, setIsDropdownOpen,
@@ -163,10 +167,11 @@ export default function TransactionForm({
             <input className="input form-control bg-body-tertiary" type="text" value={totalHargaJual} readOnly placeholder={transactionType === "sell" ? "Total Jual" : "Total Beli"} style={{ cursor: "not-allowed" }} aria-label={`Total harga: ${totalHargaJual}`} />
             {qtyNum > 0 && <div className={`mt-1 ${isOverStock || isNegativeOrZero || isFatFinger ? 'text-danger' : 'text-success'} fw-medium`} style={{ fontSize: "12px", position: "absolute" }}>🏷 Harga Satuan: {formatRupiah(hargaJual)}</div>}
           </div>
-          <div>
-            <label style={{ display: "block", marginBottom: "6px" }} htmlFor="datetime-input">Datetime (ops)</label>
-            <input id="datetime-input" className="input" type="datetime-local" value={datetime} onChange={(e) => setDatetime(e.target.value)} />
-          </div>
+          {/* FIX (BUG-10): Field datetime TIDAK dirender — backend selalu mengabaikan nilai ini
+              dan menggantinya dengan serverDatetime = new Date() (security fix server-side).
+              Menampilkan input ini menyesatkan pengguna seolah-olah mereka bisa mengatur
+              waktu transaksi, padahal tidak. Props datetime/setDatetime dipertahankan di
+              interface untuk kompatibilitas dengan useCart.js tanpa perlu refactor hook. */}
           
           <button 
             className="button" 

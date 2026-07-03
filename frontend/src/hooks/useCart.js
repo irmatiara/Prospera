@@ -106,7 +106,13 @@ export function useCart(products, fetchProducts, fetchHistory) {
                 (item) => item.product_id === selectedProduct.product_id && item.transactionType === transactionType
             );
 
-            const validDatetime = datetime ? new Date(datetime).toISOString() : new Date().toISOString();
+            // FIX (BUG-B06): Input `datetime-local` menghasilkan format 'YYYY-MM-DDTHH:mm' tanpa info timezone.
+            // Tanpa suffix, new Date('2026-07-02T22:00') diinterpretasikan sebagai timezone browser —
+            // jika browser di UTC, ini tersimpan 7 jam lebih awal dari yang dimaksud user.
+            // Dengan menambahkan '+07:00', JavaScript memperlakukan string ini sebagai WIB secara eksplisit.
+            const validDatetime = datetime 
+                ? new Date(datetime + '+07:00').toISOString()
+                : new Date().toISOString();
 
             if (existingIndex >= 0) {
                     // FIX (HIGH-FE-01): Gunakan .map() + object spread untuk update immutable.

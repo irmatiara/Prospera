@@ -6,6 +6,12 @@
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// FIX (BUG-12): Konstanta path autentikasi — single source of truth.
+// SEBELUMNYA: string '/login' dan '/register' ditulis langsung (hard-code) di beberapa tempat.
+// SESUDAH   : perubahan routing cukup dilakukan di sini, tidak perlu cari-ganti di seluruh file.
+const LOGIN_PATH    = '/login';
+const REGISTER_PATH = '/register';
+
 // ==================== MANAJEMEN SESI ====================
 
 /**
@@ -116,9 +122,9 @@ export const apiFetch = async (endpoint, options = {}) => {
     // --- HANDLER: Token expired / Unauthorized ---
     if (response.status === 401) {
         const currentPath = window.location.pathname;
-        if (!endpoint.includes("/auth/login") && currentPath !== "/login" && currentPath !== "/register") {
+        if (!endpoint.includes("/auth/login") && currentPath !== LOGIN_PATH && currentPath !== REGISTER_PATH) {
             clearAuthSession();
-            window.location.href = "/login";
+            window.location.href = LOGIN_PATH;
             throw new ApiError("Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.");
         }
     }
@@ -189,7 +195,7 @@ export const apiFetchBlob = async (endpoint) => {
 
     if (response.status === 401) {
         clearAuthSession();
-        window.location.href = "/login";
+        window.location.href = LOGIN_PATH;
         throw new ApiError("Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.");
     }
 

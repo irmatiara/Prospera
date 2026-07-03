@@ -97,7 +97,10 @@ export default function Products() {
     setSelectedProduct(product.product_id || product.id);
     setEditData({
       name: product.product_name || product.name || "",
-      cost: product.product_cost ?? "",
+      // FIX (BUG-B08): Hanya sertakan harga modal jika user adalah Owner.
+      // Karyawan tidak berhak melihat harga modal — data tetap di server, tidak dikirim ke heap JS.
+      // Prinsip data minimization: jangan kirim data sensitif yang tidak dibutuhkan role tsb.
+      ...(role === 'owner' && { cost: product.product_cost ?? "" }),
       price: product.product_price ?? "",
       stock: product.product_stock ?? "",
       category_id: product.category_id_fk || "",

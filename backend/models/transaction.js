@@ -67,7 +67,7 @@ module.exports = (sequelize, DataTypes) => {
     if (!settings) return;
 
     const moment = require('moment-timezone');
-    const trxTime = moment(transaction.transaction_datetime).tz('Asia/Jakarta').format('HH:mm:ss');
+    const trxTime = moment.utc(transaction.transaction_datetime).format('HH:mm:ss');
     const openHour = settings.open_hour;
     const closeMoment = moment.tz(`1970-01-01 ${settings.close_hour}`, 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta');
     closeMoment.add(settings.grace_period_minutes, 'minutes');

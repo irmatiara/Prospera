@@ -26,8 +26,17 @@ const IS_PRODUCTION = NODE_ENV === 'production';
  * @param {object} [meta] - Data tambahan (requestId, userId, route, dll.)
  */
 const formatLog = (level, message, meta = {}) => {
+    const now = new Date();
     const entry = {
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),  // UTC — untuk machine parsing & log aggregator (Datadog, Loki)
+        // FIX (BUG-B09): Tambahkan timestamp WIB agar debug manual tidak membingungkan.
+        // Tim Indonesia membaca log dalam konteks WIB, UTC 10:00 = WIB 17:00 — 7 jam selisih.
+        timestamp_wib: new Intl.DateTimeFormat('id-ID', {
+            timeZone: 'Asia/Jakarta',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
+        }).format(now) + ' WIB',
         level,
         message,
         service: 'prospera-backend',
@@ -92,8 +101,16 @@ const logger = {
      */
     http: (req, statusCode, durationMs) => {
         const level = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
+        const now = new Date();
         const entry = {
-            timestamp: new Date().toISOString(),
+            timestamp: now.toISOString(),   // UTC — untuk machine/aggregator
+            // FIX (BUG-B09): Tambahkan timestamp WIB — konsisten dengan formatLog.
+            timestamp_wib: new Intl.DateTimeFormat('id-ID', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            }).format(now) + ' WIB',
             level,
             message: 'HTTP Request',
             service: 'prospera-backend',

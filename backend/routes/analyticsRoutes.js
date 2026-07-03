@@ -30,7 +30,11 @@ router.get("/loss-products", authMiddleware, authorizeRole('owner'), getLossProd
 // FIX (SPOILAGE-01): Endpoint rincian kerugian kedaluwarsa (pemusnahan stok expired)
 router.get("/spoilage-log", authMiddleware, authorizeRole('owner'), getSpoilageLoss);
 
-router.get("/summary/export/excel", authMiddleware, exportLimiter, exportSummaryExcel); 
-router.get("/summary/export/csv", authMiddleware, exportLimiter, exportSummaryCsv);
+// FIX (BUG-B03): Tambahkan authorizeRole('owner') sebelum exportLimiter.
+// Sebelumnya: hanya JWT check → karyawan bisa download laporan keuangan penuh (profit, margin per produk).
+// Urutan: authMiddleware → authorizeRole → exportLimiter → controller
+// (RBAC diperiksa lebih dulu agar rate-limit tidak terpakai untuk request yang pasti ditolak)
+router.get("/summary/export/excel", authMiddleware, authorizeRole('owner'), exportLimiter, exportSummaryExcel);
+router.get("/summary/export/csv", authMiddleware, authorizeRole('owner'), exportLimiter, exportSummaryCsv);
 
 module.exports = router;

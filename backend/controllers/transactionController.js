@@ -2,6 +2,7 @@ const { sequelize, Transaction, TransactionDetail, Product, Category, User, Stor
 const { Op } = require('sequelize'); 
 const ExcelJS = require('exceljs');
 const bcrypt = require('bcryptjs');
+const moment = require('moment-timezone'); // FIX (BUG-01 + BUG-02): Timezone-aware date operations
 
 // FIX (CRITICAL-03): Idempotency Key Store — Cegah transaksi duplikat
 // (misal: double-click tombol, retry jaringan, form re-submit)
@@ -248,8 +249,14 @@ const getTransactionHistory = async (req, res, next) => {
 
         // Filter berdasarkan kolom transaction_datetime
         if (start && end) {
+            // FIX (BUG-A02): Ganti string literal dengan moment-timezone WIB-aware Date object.
+            // SEBELUMNYA: `${start} 00:00:00` diinterpretasikan MySQL sesuai session timezone server (UTC),
+            //             sehingga data transaksi antara 00:00–06:59 WIB terlewat dari riwayat.
+            // SESUDAH   : moment.tz() eksplisit membangun boundary dalam WIB sebelum dikirim ke Sequelize.
+            const start_wib = moment.tz(start + ' 00:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate();
+            const end_wib   = moment.tz(end   + ' 23:59:59', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate();
             whereCondition.transaction_datetime = {
-                [Op.between]: [`${start} 00:00:00`, `${end} 23:59:59`]
+                [Op.between]: [start_wib, end_wib]
             };
         }
         
@@ -258,7 +265,7 @@ const getTransactionHistory = async (req, res, next) => {
             where: whereCondition, 
             limit: limit,
             offset: offset,
-            order: [['transaction_id', 'DESC']],
+            order: [['transaction_datetime', 'DESC'], ['transaction_id', 'DESC']],
             include: [
                 {
                     model: TransactionDetail,
@@ -294,15 +301,20 @@ const getTransactionHistory = async (req, res, next) => {
 const exportTransactionHistory = async (req, res, next) => {
     try {
         const userId = req.user.store_id;
-        const { start, end, format } = req.query;
+        // FIX (BUG-A01): Gunakan let agar start/end bisa di-reassign saat tidak ada parameter.
+        // SEBELUMNYA: const { start, end } — reassign di bawah menyebabkan TypeError crash.
+        // SESUDAH   : let memungkinkan fallback ke default 30 hari berjalan dengan benar.
+        let { start, end } = req.query;
+        const { format } = req.query;
 
-        // FIX (MED-04): Default ke 30 hari terakhir jika tidak ada parameter tanggal
+        // FIX (MED-04 + BUG-01): Default ke 30 hari terakhir jika tidak ada parameter tanggal.
+        // SEBELUMNYA: toISOString() menghasilkan tanggal UTC, bukan WIB — bisa mundur 1 hari
+        //             antara jam 00:00–07:00 WIB (tengah malam sampai subuh).
+        // SESUDAH   : moment-timezone memastikan tanggal dihitung dalam zona WIB secara eksplisit.
         if (!start || !end) {
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today);
-            thirtyDaysAgo.setDate(today.getDate() - 30);
-            end   = today.toISOString().split('T')[0];
-            start = thirtyDaysAgo.toISOString().split('T')[0];
+            const todayWIB = moment().tz('Asia/Jakarta');
+            end   = todayWIB.format('YYYY-MM-DD');
+            start = todayWIB.clone().subtract(30, 'days').format('YYYY-MM-DD');
         }
 
         // FIX (CRIT-02): Validasi format dan rentang tanggal maksimum 366 hari
@@ -322,10 +334,14 @@ const exportTransactionHistory = async (req, res, next) => {
             });
         }
 
+        // FIX (BUG-A02): moment-timezone WIB boundary — konsisten dengan getDateFilter() di dateUtils.js.
         const whereCondition = {
             user_id_fk: userId,
             transaction_datetime: {
-                [Op.between]: [`${start} 00:00:00`, `${end} 23:59:59`]
+                [Op.between]: [
+                    moment.tz(start + ' 00:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate(),
+                    moment.tz(end   + ' 23:59:59', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate()
+                ]
             }
         };
 
@@ -349,19 +365,16 @@ const exportTransactionHistory = async (req, res, next) => {
             { header: 'Nama Kasir', key: 'cashier', width: 20 },
             { header: 'Status Transaksi', key: 'status', width: 18 },
             { header: 'Metode Pembayaran', key: 'payment_method', width: 20 },
-            { header: 'Nama Produk', key: 'product_name', width: 30 },
-            { header: 'Kategori', key: 'category', width: 20 },
-            { header: 'Harga Jual', key: 'selling_price', width: 15 },
-            { header: 'Qty Terjual', key: 'quantity', width: 12 },
-            { header: 'Subtotal Harga', key: 'sub_total', width: 18 }
+            { header: 'Detail Produk Terjual', key: 'product_details', width: 50 },
+            { header: 'Total Belanja', key: 'total_belanja', width: 18 }
         ];
 
         // Jika Owner, tambahkan kolom sensitif
         if (isOwner) {
-            columns.splice(8, 0, { header: 'Harga Modal', key: 'capital_cost', width: 15 });
+            columns.splice(7, 0, { header: 'Total Harga Modal', key: 'total_capital', width: 20 });
             columns.push(
-                { header: 'Total Laba Nominal', key: 'total_laba', width: 20 },
-                { header: 'Margin Keuntungan', key: 'margin', width: 18 }
+                { header: 'Total Laba', key: 'total_laba', width: 18 },
+                { header: 'Margin (%)', key: 'margin', width: 15 }
             );
         }
 
@@ -428,7 +441,7 @@ const exportTransactionHistory = async (req, res, next) => {
         while (hasMore) {
             const transactions = await Transaction.findAll({
                 where: whereCondition,
-                order: [['transaction_datetime', 'ASC']],
+                order: [['transaction_datetime', 'DESC'], ['transaction_id', 'DESC']],
                 limit: batchSize,
                 offset: offset,
                 include: [
@@ -457,72 +470,80 @@ const exportTransactionHistory = async (req, res, next) => {
             }
 
             transactions.forEach((tx) => {
-                // Format waktu WIB
-                const dateObj = new Date(tx.transaction_datetime);
-                const dateStr = tx.transaction_datetime ? new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    year: 'numeric', month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                }).format(dateObj) : '-';
-                
+                // FIX (BUG-02): Gunakan moment-timezone yang konsisten dengan seluruh codebase.
+                // SEBELUMNYA: Intl.DateTimeFormat berpotensi double-shift jika MySQL session timezone
+                //             WIB (data masuk sebagai string WIB, di-parse Node.js sebagai UTC,
+                // FIX (BUG-02): Gunakan moment-timezone yang konsisten dengan seluruh codebase.
+                // SEBELUMNYA: Intl.DateTimeFormat berpotensi double-shift jika MySQL session timezone
+                //             WIB (data masuk sebagai string WIB, di-parse Node.js sebagai UTC,
+                const dateStr = tx.transaction_datetime
+                    ? moment.utc(tx.transaction_datetime).format('DD/MM/YYYY HH:mm:ss')
+                    : '-';
                 const typeStr = tx.transaction_type === 'sell' ? 'Penjualan' : 'Restock';
                 const statusStr = tx.status === 'success' ? 'Sukses' : (tx.status === 'cancelled' ? 'Dibatalkan' : tx.status);
                 const cashierName = sanitizeCSV(tx.Cashier ? tx.Cashier.username : 'Sistem');
                 const paymentMethod = 'Tunai';
 
+                let productDetails = [];
+                let totalModal = 0;
+                let totalOmzet = Number(tx.total_amount) || 0;
+
                 tx.TransactionDetails.forEach((detail) => {
-                    const productName = sanitizeCSV(detail.Product ? detail.Product.product_name : 'Produk Dihapus');
-                    const categoryName = sanitizeCSV((detail.Product && detail.Product.Category) ? detail.Product.Category.category_name : 'Tanpa Kategori');
+                    const name = sanitizeCSV(detail.Product ? detail.Product.product_name : 'Produk Dihapus');
+                    const qty = Number(detail.quantity) || 0;
+                    productDetails.push(`${name} (${qty}x)`);
                     
-                    let totalLaba = 0;
-                    let marginVal = 0;
                     if (tx.transaction_type === 'sell' && tx.status === 'success') {
-                        totalLaba = (detail.selling_price - detail.capital_cost) * detail.quantity;
-                        const margin = ((detail.selling_price - detail.capital_cost) / detail.capital_cost);
-                        marginVal = isFinite(margin) ? margin : 0;
-                    }
-
-                    const rowData = {
-                        transaction_id: `#TRX-${tx.transaction_id}`,
-                        datetime: dateStr,
-                        type: typeStr,
-                        cashier: cashierName,
-                        status: statusStr,
-                        payment_method: paymentMethod,
-                        product_name: productName,
-                        category: categoryName,
-                        selling_price: Number(detail.selling_price) || 0,
-                        quantity: Number(detail.quantity) || 0,
-                        sub_total: Number(detail.sub_total) || 0
-                    };
-
-                    if (isOwner) {
-                        rowData.capital_cost = Number(detail.capital_cost) || 0;
-                        rowData.total_laba = Number(totalLaba) || 0;
-                        rowData.margin = Number(marginVal) || 0;
-                    }
-
-                    if (format === 'csv') {
-                        // Tulis baris CSV secara manual (streaming)
-                        const rowArray = columns.map(c => rowData[c.key]);
-                        const rowString = rowArray.map(escapeCSV).join(';') + '\n';
-                        res.write(rowString);
-                    } else {
-                        const row = worksheet.addRow(rowData);
-                        const currencyFmt = '[$Rp-421]#,##0';
-                        
-                        // FIX: Timpa objek style secara keseluruhan agar direkam ke XML oleh Stream
-                        row.getCell('selling_price').style = { numFmt: currencyFmt };
-                        row.getCell('sub_total').style = { numFmt: currencyFmt };
-                        if (isOwner) {
-                            row.getCell('capital_cost').style = { numFmt: currencyFmt };
-                            row.getCell('total_laba').style = { numFmt: currencyFmt };
-                            row.getCell('margin').style = { numFmt: '0.0%', alignment: { horizontal: 'center' } };
-                        }
-                        
-                        row.commit();
+                        totalModal += (Number(detail.capital_cost) || 0) * qty;
                     }
                 });
+
+                const detailString = productDetails.join(', ');
+                
+                let totalLaba = 0;
+                let marginVal = 0;
+                
+                if (tx.transaction_type === 'sell' && tx.status === 'success') {
+                    totalLaba = totalOmzet - totalModal;
+                    const margin = (totalOmzet - totalModal) / (totalModal || 1);
+                    marginVal = isFinite(margin) ? margin : 0;
+                }
+
+                const rowData = {
+                    transaction_id: `#TRX-${tx.transaction_id}`,
+                    datetime: dateStr,
+                    type: typeStr,
+                    cashier: cashierName,
+                    status: statusStr,
+                    payment_method: paymentMethod,
+                    product_details: detailString,
+                    total_belanja: totalOmzet
+                };
+
+                if (isOwner) {
+                    rowData.total_capital = totalModal;
+                    rowData.total_laba = totalLaba;
+                    rowData.margin = marginVal;
+                }
+
+                if (format === 'csv') {
+                    // Tulis baris CSV secara manual (streaming)
+                    const rowArray = columns.map(c => rowData[c.key]);
+                    const rowString = rowArray.map(escapeCSV).join(';') + '\n';
+                    res.write(rowString);
+                } else {
+                    const row = worksheet.addRow(rowData);
+                    const currencyFmt = '[$Rp-421]#,##0';
+                    const pctFmt = '0.00%';
+                    
+                    row.getCell('total_belanja').style = { numFmt: currencyFmt };
+                    if (isOwner) {
+                        row.getCell('total_capital').style = { numFmt: currencyFmt };
+                        row.getCell('total_laba').style = { numFmt: currencyFmt };
+                        row.getCell('margin').style = { numFmt: pctFmt };
+                    }
+                    row.commit();
+                }
             });
 
         offset += batchSize;
@@ -560,8 +581,12 @@ const getTransactionSummary = async (req, res, next) => {
         // Bangun filter tanggal yang konsisten dengan endpoint lain (Op.between)
         const dateFilter = {};
         if (start && end) {
+            // FIX (BUG-A02): moment-timezone WIB — sama dengan getTransactionHistory.
             dateFilter.transaction_datetime = {
-                [Op.between]: [`${start} 00:00:00`, `${end} 23:59:59`]
+                [Op.between]: [
+                    moment.tz(start + ' 00:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate(),
+                    moment.tz(end   + ' 23:59:59', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate()
+                ]
             };
         }
 

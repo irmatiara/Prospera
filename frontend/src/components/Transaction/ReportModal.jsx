@@ -10,6 +10,32 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // FIX (BUG-06): Ekstrak kalkulasi tanggal dari 3 fungsi duplikat menjadi 1 fungsi terpusat.
+    // SEBELUMNYA: logika TODAY/MONTH/CUSTOM ditulis IDENTIK di fetchSummary, handleExportClick,
+    //             dan handleExportCsvClick — jika ada bug diperbaiki di satu tempat, 2 lainnya
+    //             tertinggal (maintainability debt).
+    // SESUDAH   : resolveReportDates() adalah single source of truth untuk seluruh komponen ini.
+    const resolveReportDates = () => {
+        const today = new Date();
+        if (period === 'TODAY') {
+            // Kompensasi offset timezone browser agar tanggal lokal tidak bergeser ke UTC
+            const offset = today.getTimezoneOffset() * 60000;
+            const localDate = (new Date(today - offset)).toISOString().split('T')[0];
+            return { start: localDate, end: localDate };
+        }
+        if (period === 'MONTH') {
+            const year  = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
+            return { start: `${year}-${month}-01`, end: `${year}-${month}-${lastDay}` };
+        }
+        if (period === 'CUSTOM' && startDate && endDate) {
+            return { start: startDate, end: endDate };
+        }
+        // ALL atau CUSTOM dengan tanggal belum lengkap → kembalikan kosong
+        return { start: '', end: '' };
+    };
+
     useEffect(() => {
         if (isOpen) {
             fetchSummary();
@@ -20,41 +46,21 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
         setLoading(true);
         setError('');
         try {
-            let start = "";
-            let end = "";
-            const today = new Date();
-
-            if (period === "TODAY") {
-                const offset = today.getTimezoneOffset() * 60000;
-                const localDate = (new Date(today - offset)).toISOString().split('T')[0];
-                start = localDate;
-                end = localDate;
-            } else if (period === "MONTH") {
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
-                start = `${year}-${month}-01`;
-                end = `${year}-${month}-${lastDay}`;
-            } else if (period === "CUSTOM" && startDate && endDate) {
-                start = startDate;
-                end = endDate;
-            }
-
-            if (period === "CUSTOM" && (!startDate || !endDate)) {
+            // Tunggu kedua tanggal custom sebelum fetch
+            if (period === 'CUSTOM' && (!startDate || !endDate)) {
                 setLoading(false);
-                return; // Wait for both dates
+                return;
             }
 
-            let url = "/transactions/summary";
-            let queryParams = [];
+            const { start, end } = resolveReportDates();
+
+            let url = '/transactions/summary';
+            const queryParams = [];
             if (start && end) {
                 queryParams.push(`start=${start}`);
                 queryParams.push(`end=${end}`);
             }
-
-            if (queryParams.length > 0) {
-                url += `?${queryParams.join('&')}`;
-            }
+            if (queryParams.length > 0) url += `?${queryParams.join('&')}`;
 
             const data = await apiFetch(url);
             setSummary(data);
@@ -67,51 +73,13 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
 
     const handleExportClick = (e) => {
         if (e && e.preventDefault) e.preventDefault();
-        let start = "";
-        let end = "";
-        const today = new Date();
-
-        if (period === "TODAY") {
-            const offset = today.getTimezoneOffset() * 60000;
-            const localDate = (new Date(today - offset)).toISOString().split('T')[0];
-            start = localDate;
-            end = localDate;
-        } else if (period === "MONTH") {
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
-            start = `${year}-${month}-01`;
-            end = `${year}-${month}-${lastDay}`;
-        } else if (period === "CUSTOM" && startDate && endDate) {
-            start = startDate;
-            end = endDate;
-        }
-
+        const { start, end } = resolveReportDates();
         onExport(start, end);
     };
 
     const handleExportCsvClick = (e) => {
         if (e && e.preventDefault) e.preventDefault();
-        let start = "";
-        let end = "";
-        const today = new Date();
-
-        if (period === "TODAY") {
-            const offset = today.getTimezoneOffset() * 60000;
-            const localDate = (new Date(today - offset)).toISOString().split('T')[0];
-            start = localDate;
-            end = localDate;
-        } else if (period === "MONTH") {
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
-            start = `${year}-${month}-01`;
-            end = `${year}-${month}-${lastDay}`;
-        } else if (period === "CUSTOM" && startDate && endDate) {
-            start = startDate;
-            end = endDate;
-        }
-
+        const { start, end } = resolveReportDates();
         onExportCsv(start, end);
     };
 
