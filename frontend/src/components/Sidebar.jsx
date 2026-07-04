@@ -1,11 +1,3 @@
-/**
- * Sidebar.jsx — Navigasi Samping Aplikasi
- * REFACTOR (F-T03): Modal Logout & Change Password dipecah ke komponen terpisah.
- * Sidebar kini hanya fokus pada navigasi dan rendering menu.
- * 
- * Sebelum: 272 baris (termasuk 2 modal inline + state + handler)
- * Sesudah: ~80 baris (navigasi murni)
- */
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { apiFetch, clearAuthSession, getCurrentUser } from '../utils/api';
@@ -22,8 +14,6 @@ function Sidebar() {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     useEffect(() => {
-        // FIX (CRITICAL-FE-01): Gunakan getCurrentUser() dari api.js
-        // yang membaca dari sessionStorage secara konsisten (selaras dengan setAuthSession).
         const user = getCurrentUser();
         if (user) {
             setUsername(user.username || user.name || "");
@@ -47,8 +37,6 @@ function Sidebar() {
 
     const confirmLogout = async () => {
         try {
-            // FIX (V4.0): Panggil API Backend untuk membersihkan HttpOnly Cookie
-            // dan mencatat token JTI ke BlacklistedTokens
             await apiFetch('/auth/logout', { method: 'POST' });
         } catch (e) {
             console.error("Gagal logout di server:", e);
@@ -139,14 +127,16 @@ function Sidebar() {
                         <i className={getThemeIcon()} />
                         <span className="nav-text">{getThemeText()}</span>
                     </button>
-                    <button 
-                        onClick={replayTour}
-                        className="nav-link w-100 border-0 bg-transparent text-start mb-2"
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <i className="fas fa-play-circle" />
-                        <span className="nav-text">Ulangi Panduan</span>
-                    </button>
+                    {role !== 'karyawan' && (
+                        <button 
+                            onClick={replayTour}
+                            className="nav-link w-100 border-0 bg-transparent text-start mb-2"
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <i className="fas fa-play-circle" />
+                            <span className="nav-text">Ulangi Panduan</span>
+                        </button>
+                    )}
                     <button 
                         onClick={() => setShowPasswordModal(true)}
                         className="nav-link w-100 border-0 bg-transparent text-start mb-2"

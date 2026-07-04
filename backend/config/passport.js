@@ -4,7 +4,6 @@ const JwtStrategy = require('passport-jwt').Strategy;
 const bcrypt = require('bcryptjs');
 const { User, BlacklistedToken } = require('../models');
 
-// Extract JWT dari Cookie, bukan dari Header (Mitigasi XSS)
 const cookieExtractor = function(req) {
     let token = null;
     if (req && req.cookies) {
@@ -13,7 +12,6 @@ const cookieExtractor = function(req) {
     return token;
 };
 
-// 1. Local Strategy (Untuk Login Endpoint)
 passport.use(new LocalStrategy({
     usernameField: 'email',
     passwordField: 'password'
@@ -39,7 +37,6 @@ passport.use(new LocalStrategy({
     }
 }));
 
-// 2. JWT Strategy (Untuk Protected Routes)
 const jwtOptions = {
     jwtFromRequest: cookieExtractor,
     secretOrKey: process.env.JWT_SECRET

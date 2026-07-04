@@ -1,18 +1,4 @@
 /**
- * privacy.js — Utilitas Kepatuhan Data Pribadi (UU PDP Indonesia)
- * FIX (HIGH-01): Implementasi Data Masking & Redaction sesuai UU PDP Pasal 20
- * (Prinsip Data Minimization — hanya tampilkan data yang benar-benar diperlukan)
- *
- * PRINSIP: Data sensitif TIDAK BOLEH dikirim ke client dalam format telanjang.
- * Fungsi-fungsi di sini harus digunakan di semua endpoint auth yang mengembalikan
- * data profil pengguna (login, createUser, getAllUsers, dll).
- */
-
-/**
- * Topeng email — sembunyikan bagian lokal kecuali 2 karakter pertama dan 1 terakhir
- * Contoh: "nikitaho@gmail.com" → "ni****o@gmail.com"
- * Contoh: "ab@test.com"        → "a*@test.com"
- *
  * @param {string} email - Alamat email asli
  * @returns {string} Email yang sudah di-mask, atau string kosong jika input tidak valid
  */

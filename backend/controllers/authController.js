@@ -3,15 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { JWT_EXPIRY } = require('../config/appConfig');
-// FIX (HIGH-01): Import utilitas masking data pribadi (UU PDP — Data Minimization)
 const { maskEmail } = require('../utils/privacy');
-// FIX (HIGH-02): Import Hard Purge Service untuk Right to be Forgotten (UU PDP)
 const { hardPurgeStore } = require('../services/purgeService');
 
-/**
- * Register — Pendaftaran publik untuk UMKM / Toko Baru
- * Siapapun yang mendaftar melalui endpoint ini akan otomatis menjadi 'owner'.
- */
 const register = async (req, res, next) => {
     try {
         const { username, email, password, phone_number } = req.body;
@@ -40,7 +34,7 @@ const register = async (req, res, next) => {
             email,
             password: hashedPassword,
             phone_number: phone_number || null,
-            role: 'owner'  // Pendaftar pertama SELALU jadi Owner
+            role: 'owner'  
         });
 
         res.status(201).json({ 
@@ -52,11 +46,6 @@ const register = async (req, res, next) => {
     }
 };
 
-/**
- * Login — Autentikasi pengguna dan pemberian token JWT
- * Rute ini di-intercept oleh passport.authenticate('local') di authRoutes.js
- * sehingga kredensial telah divalidasi dan `req.user` sudah terisi.
- */
 const login = async (req, res, next) => {
     try {
         const user = req.user;
@@ -105,13 +94,8 @@ const login = async (req, res, next) => {
     }
 };
 
-/**
- * Logout — Menarik JWT dan memasukkan JTI ke Blacklist
- */
+
 const logout = async (req, res, next) => {
-    // FIX (BUG-09): Pisahkan operasi DB dan operasi Cookie ke dalam try/finally.
-    // Cookie HARUS selalu dihapus meski operasi DB (blacklist/update) gagal,
-    // sehingga pengguna tidak terjebak dalam state "token aktif tapi sesi mati".
     try {
         const token = req.cookies && req.cookies['jwt'];
         if (token) {
@@ -138,20 +122,12 @@ const logout = async (req, res, next) => {
                     { where: { user_id: userId } }
                 );
             } catch (dbErr) {
-                // BUG-09 FIX: Log error DB tapi jangan hentikan proses logout.
-                // Cookie harus tetap dihapus walau DB update gagal.
                 console.error("Gagal reset overtime saat logout (non-fatal):", dbErr.message);
             }
         }
     } catch (error) {
-        // Log unexpected errors tapi tetap lanjutkan untuk hapus cookie
         console.error("Error tak terduga saat logout:", error.message);
     } finally {
-        // FIX (BUG-03): Sertakan opsi yang IDENTIK dengan saat cookie dibuat.
-        // Browser hanya menghapus cookie jika path, secure, dan sameSite cocok.
-        // SEBELUMNYA: res.clearCookie('jwt') — tanpa opsi → cookie TIDAK terhapus di production
-        //             karena browser membandingkan atribut cookie sebelum menghapus.
-        // SESUDAH   : opsi secure + sameSite selaras dengan res.cookie() di fungsi login.
         res.clearCookie('jwt', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -161,11 +137,7 @@ const logout = async (req, res, next) => {
     }
 };
 
-/**
- * Me — Session Hydration (Anti F5 Amnesia)
- * Endpoint ini dilindungi oleh passport.authenticate('jwt').
- * Jika sukses, mengembalikan profil user yang sedang aktif.
- */
+
 const me = async (req, res, next) => {
     try {
         const user = req.user;
@@ -183,12 +155,7 @@ const me = async (req, res, next) => {
     }
 };
 
-// ===================== USER MANAGEMENT (Owner Only) =====================
 
-/**
- * createUser — Owner membuat akun Karyawan baru
- * Endpoint ini HANYA bisa diakses oleh Owner (dilindungi authorizeRole di route).
- */
 const createUser = async (req, res, next) => {
     try {
         const { username, email, password, role } = req.body;
@@ -210,8 +177,7 @@ const createUser = async (req, res, next) => {
             email,
             password: hashedPassword,
             role: assignedRole,
-            // FIX: Gunakan req.user.user_id yang terdekripsi dari JWT
-            owner_id: req.user.user_id // SaaS ISOLATION: Karyawan ini milik Owner yang sedang login
+            owner_id: req.user.user_id 
         });
 
         res.status(201).json({ 
@@ -219,7 +185,6 @@ const createUser = async (req, res, next) => {
             user: {
                 id: newUser.user_id,
                 username: newUser.username,
-                // FIX (HIGH-01): Email di-mask (UU PDP)
                 email: maskEmail(newUser.email),
                 role: newUser.role
             }
@@ -229,13 +194,8 @@ const createUser = async (req, res, next) => {
     }
 };
 
-/**
- * getAllUsers — Owner melihat daftar semua user
- */
 const getAllUsers = async (req, res, next) => {
     try {
-        // SaaS ISOLATION: Hanya tampilkan karyawan milik Owner ini
-        // FIX: Gunakan req.user.user_id untuk query owner_id
         const users = await User.findAll({
             where: { owner_id: req.user.user_id },
             attributes: ['user_id', 'username', 'email', 'role', 'is_active'],
@@ -248,27 +208,19 @@ const getAllUsers = async (req, res, next) => {
     }
 };
 
-/**
- * deleteUserById — Owner menghapus akun Karyawan
- * Owner TIDAK bisa menghapus dirinya sendiri.
- * SECURITY: Filter by owner_id untuk mencegah IDOR (cross-tenant deletion).
- */
 const deleteUserById = async (req, res, next) => {
     try {
         const targetId = Number(req.params.id);
         const currentUserId = req.user.user_id;
 
-        // Cegah Owner menghapus diri sendiri
         if (targetId === currentUserId) {
             return res.status(400).json({ message: "Anda tidak dapat menghapus akun Anda sendiri." });
         }
 
-        // SECURITY FIX (B-T03): Cari user target HANYA dalam lingkup toko Owner ini
-        // Sebelumnya: User.findByPk(targetId) — bisa mengakses user milik toko lain
         const targetUser = await User.findOne({
             where: {
                 user_id: targetId,
-                owner_id: req.user.user_id  // Isolasi tenant: hanya karyawan milik Owner ini
+                owner_id: req.user.user_id  
             }
         });
 
@@ -276,12 +228,10 @@ const deleteUserById = async (req, res, next) => {
             return res.status(404).json({ message: "Pengguna tidak ditemukan." });
         }
 
-        // Cegah menghapus Owner lain (lapisan pertahanan tambahan)
         if (targetUser.role === 'owner') {
             return res.status(403).json({ message: "Tidak dapat menghapus akun Owner." });
         }
 
-        // SOFT DELETE: Set is_active = false untuk menjaga riwayat transaksi
         await targetUser.update({ is_active: false });
 
         res.status(200).json({ message: `Akun "${targetUser.username}" berhasil dinonaktifkan.` });
@@ -290,9 +240,6 @@ const deleteUserById = async (req, res, next) => {
     }
 };
 
-/**
- * updateUserById — Owner mengedit data Karyawan (Username & Email saja)
- */
 const updateUserById = async (req, res, next) => {
     try {
         const targetId = Number(req.params.id);
@@ -331,9 +278,6 @@ const updateUserById = async (req, res, next) => {
     }
 };
 
-/**
- * resetUserPasswordById — Owner mereset password Karyawan
- */
 const resetUserPasswordById = async (req, res, next) => {
     try {
         const targetId = Number(req.params.id);
@@ -343,10 +287,6 @@ const resetUserPasswordById = async (req, res, next) => {
             return res.status(400).json({ message: "Password minimal 6 karakter." });
         }
 
-        // FIX (BUG-A04): Tambahkan batas maksimal 64 karakter — konsisten dengan
-        // validateRegister, validateLogin, dan validateChangePassword.
-        // Bcrypt hanya memproses 72 byte pertama; input > 64 karakter tidak menambah
-        // keamanan tapi berpotensi dipakai untuk slow-hash DoS via endpoint ini.
         if (password.length > 64) {
             return res.status(400).json({ message: "Password maksimal 64 karakter." });
         }
@@ -381,13 +321,6 @@ const resetUserPasswordById = async (req, res, next) => {
     }
 };
 
-/**
- * deleteUser — User (Owner) menghapus seluruh akun dan data toko mereka
- * FIX (HIGH-02): Ganti cascade cleanup yang tidak lengkap dengan hardPurgeStore().
- * - SEBELUM: Hanya Product yang di-hard delete, data lain (Transaction, InventoryLog, dll) tertinggal
- * - SESUDAH: hardPurgeStore() menyapu BERSIH semua data dalam 1 transaksi ACID
- *   sesuai hak 'Right to be Forgotten' UU PDP Pasal 35.
- */
 const deleteUser = async (req, res, next) => {
     try {
         const idTarget = req.user.user_id;
@@ -397,15 +330,10 @@ const deleteUser = async (req, res, next) => {
             return res.status(404).json({ message: "Pengguna tidak ditemukan." });
         }
 
-        // Hanya Owner yang berhak menghapus seluruh akun toko via endpoint ini
-        // Karyawan menggunakan endpoint terpisah (dihapus oleh Owner)
         if (user.role !== 'owner') {
             return res.status(403).json({ message: "Hanya Owner yang dapat menghapus akun toko secara permanen." });
         }
 
-        // FIX (HIGH-02): Panggil Hard Purge Service — satu fungsi ACID yang menghapus
-        // semua data toko dalam urutan yang aman sesuai foreign key constraint.
-        // Tidak ada lagi pengecekan jumlah karyawan karena purgeService menangani semuanya.
         const { sequelize } = require('../models');
         const models = require('../models');
         const purgeResult = await hardPurgeStore(sequelize, models, idTarget);
@@ -420,9 +348,6 @@ const deleteUser = async (req, res, next) => {
     }
 };
 
-/**
- * changePassword — User (Owner/Karyawan) mengganti password mereka sendiri
- */
 const changePassword = async (req, res, next) => {
     try {
         const { old_password, new_password } = req.body;

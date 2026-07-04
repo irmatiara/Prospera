@@ -8,6 +8,7 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
     const [endDate, setEndDate] = useState('');
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [exportingType, setExportingType] = useState(null);
     const [error, setError] = useState('');
 
     // FIX (BUG-06): Ekstrak kalkulasi tanggal dari 3 fungsi duplikat menjadi 1 fungsi terpusat.
@@ -71,16 +72,28 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
         }
     };
 
-    const handleExportClick = (e) => {
+    const handleExportClick = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
-        const { start, end } = resolveReportDates();
-        onExport(start, end);
+        if (exportingType !== null) return;
+        setExportingType('excel');
+        try {
+            const { start, end } = resolveReportDates();
+            await onExport(start, end);
+        } finally {
+            setExportingType(null);
+        }
     };
 
-    const handleExportCsvClick = (e) => {
+    const handleExportCsvClick = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
-        const { start, end } = resolveReportDates();
-        onExportCsv(start, end);
+        if (exportingType !== null) return;
+        setExportingType('csv');
+        try {
+            const { start, end } = resolveReportDates();
+            await onExportCsv(start, end);
+        } finally {
+            setExportingType(null);
+        }
     };
 
     if (!isOpen) return null;
@@ -128,30 +141,30 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
                     </div>
 
                     {/* Summary Cards */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                        <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#e5e7eb', textAlign: 'center' }}>Ringkasan Data</h4>
+                    <div className="bg-body-secondary border rounded-3 p-3">
+                        <h4 className="text-body fw-bold text-center mb-3" style={{ fontSize: '14px' }}>Ringkasan Data</h4>
                         
                         {loading ? (
-                            <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af' }}>Memuat data...</div>
+                            <div className="text-muted text-center p-3">Memuat data...</div>
                         ) : error ? (
-                            <div style={{ color: '#EF4444', textAlign: 'center', fontSize: '14px' }}>{error}</div>
+                            <div className="text-danger text-center" style={{ fontSize: '14px' }}>{error}</div>
                         ) : summary ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255, 255, 255, 0.1)', paddingBottom: '8px' }}>
-                                    <span style={{ color: '#9ca3af' }}>Total Transaksi</span>
-                                    <span style={{ fontWeight: 'bold', color: '#f3f4f6' }}>{summary.totalTransactions} TRX</span>
+                                <div className="d-flex justify-content-between border-bottom pb-2">
+                                    <span className="text-muted">Total Transaksi</span>
+                                    <span className="text-body fw-bold">{summary.totalTransactions} TRX</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255, 255, 255, 0.1)', paddingBottom: '8px' }}>
-                                    <span style={{ color: '#9ca3af' }}>Omzet Penjualan</span>
-                                    <span style={{ fontWeight: 'bold', color: '#10B981' }}>{formatRupiah(summary.totalIncome)}</span>
+                                <div className="d-flex justify-content-between border-bottom pb-2">
+                                    <span className="text-muted">Omzet Penjualan</span>
+                                    <span className="fw-bold text-success">{formatRupiah(summary.totalIncome)}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255, 255, 255, 0.1)', paddingBottom: '8px' }}>
-                                    <span style={{ color: '#9ca3af' }}>Pengeluaran Restock</span>
-                                    <span style={{ fontWeight: 'bold', color: '#EF4444' }}>{formatRupiah(summary.totalRestock)}</span>
+                                <div className="d-flex justify-content-between border-bottom pb-2">
+                                    <span className="text-muted">Pengeluaran Restock</span>
+                                    <span className="fw-bold text-danger">{formatRupiah(summary.totalRestock)}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px' }}>
-                                    <span style={{ color: '#e5e7eb', fontWeight: 'bold' }}>Estimasi Laba Kotor</span>
-                                    <span style={{ fontWeight: 'bold', fontSize: '18px', color: summary.totalProfit >= 0 ? '#10B981' : '#EF4444' }}>
+                                <div className="d-flex justify-content-between pt-1">
+                                    <span className="text-body fw-bold">Estimasi Laba Kotor</span>
+                                    <span className="fw-bold" style={{ fontSize: '18px', color: summary.totalProfit >= 0 ? 'var(--bs-success)' : 'var(--bs-danger)' }}>
                                         {formatRupiah(summary.totalProfit)}
                                     </span>
                                 </div>
@@ -164,6 +177,7 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
                             type="button"
                             onClick={handleExportClick}
                             className="button"
+                            disabled={exportingType !== null}
                             style={{ 
                                 background: "rgba(16, 185, 129, 0.1)", color: "#10B981", border: "1px solid rgba(16, 185, 129, 0.2)", 
                                 display: "flex", alignItems: "center", justifyContent: "center", 
@@ -172,13 +186,14 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
                                 width: "100%", fontSize: "16px"
                             }}
                         >
-                            <i className="fas fa-file-excel"></i> Export Laporan ke Excel
+                            <i className="fas fa-file-excel"></i> {exportingType === 'excel' ? 'Memproses...' : 'Export Laporan ke Excel'}
                         </button>
                         
                         <button 
                             type="button"
                             onClick={handleExportCsvClick}
                             className="button"
+                            disabled={exportingType !== null}
                             style={{ 
                                 background: "rgba(59, 130, 246, 0.1)", color: "#3B82F6", border: "1px solid rgba(59, 130, 246, 0.2)", 
                                 display: "flex", alignItems: "center", justifyContent: "center", 
@@ -187,7 +202,7 @@ export default function ReportModal({ isOpen, onClose, onExport, onExportCsv }) 
                                 width: "100%", fontSize: "16px"
                             }}
                         >
-                            <i className="fas fa-file-csv"></i> Export Laporan ke CSV
+                            <i className="fas fa-file-csv"></i> {exportingType === 'csv' ? 'Memproses...' : 'Export Laporan ke CSV'}
                         </button>
                     </div>
                 </div>

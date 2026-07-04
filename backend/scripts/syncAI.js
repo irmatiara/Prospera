@@ -26,7 +26,6 @@ async function runSync() {
     }
 }
 
-// Jika dijalankan secara langsung dari CLI (node syncAI.js)
 if (require.main === module) {
     runSync().then(() => process.exit(0)).catch(() => process.exit(1));
 }

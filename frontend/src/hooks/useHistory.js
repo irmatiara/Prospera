@@ -1,16 +1,3 @@
-/**
- * useHistory.js — Hook untuk manajemen riwayat transaksi
- * REFACTOR (F-T02): Dipecah dari god-hook useTransactionLogic.js
- * 
- * Bertanggung jawab atas:
- * - Fetch & state riwayat transaksi
- * - Pagination (page, totalPages, totalItems)
- * - Filter tanggal (ALL, TODAY, MONTH, CUSTOM)
- * - Filter tab (ALL, Penjualan, Pembelian)
- * - Search dalam riwayat
- * - Detail modal transaksi
- */
-
 import { useState, useMemo } from "react";
 import { apiFetch, apiFetchBlob, formatError } from "../utils/api";
 import { getTransactionTypeLabel } from "../utils/transactionHelpers";
@@ -51,10 +38,6 @@ export function useHistory() {
             const today = new Date();
 
             if (type === "TODAY") {
-                // FIX (BUG-B05): Ganti getTimezoneOffset() browser dengan Intl.DateTimeFormat WIB eksplisit.
-                // Sebelumnya: getTimezoneOffset() mengembalikan offset timezone OS browser — bukan WIB.
-                // Jika browser di-set UTC (common di laptop kantor via IT policy), tanggal berbeda 7 jam.
-                // Locale 'sv-SE' dipilih karena outputnya selalu YYYY-MM-DD (ISO date) — tanpa library.
                 const localDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(today);
                 queryParams.push(`start=${localDate}`);
                 queryParams.push(`end=${localDate}`);
@@ -190,7 +173,6 @@ export function useHistory() {
         }
     };
 
-    // PERFORMANCE FIX (F-S19): Memoize filtered history (O(N×M) computation)
     const filteredHistory = useMemo(() => {
         return history.filter((tx) => {
             const matchTab = activeTab === "ALL" || getTransactionTypeLabel(tx) === activeTab;

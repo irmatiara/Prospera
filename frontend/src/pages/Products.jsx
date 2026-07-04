@@ -1,11 +1,3 @@
-/**
- * Products.jsx — Halaman Manajemen Produk (Orchestrator)
- * REFACTOR (F-S02): Logika form & list dipecah ke ProductForm.jsx dan ProductList.jsx.
- * File ini hanya menjadi "pengatur" state utama dan API calls.
- * 
- * Sebelum: 290 baris (form + list + pagination semua inline)
- * Sesudah: ~105 baris (state + API calls saja)
- */
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch, getUserRole, formatError } from "../utils/api";
 import ProductForm from "../components/ProductForm";
@@ -33,7 +25,6 @@ export default function Products() {
   const [totalItems, setTotalItems] = useState(0);
   const limit = 10;
 
-  // PERFORMANCE FIX (F-S16): useCallback mencegah re-create fungsi setiap render
   const fetchProducts = useCallback(async (page = 1) => {
     try {
       const data = await apiFetch(`/products?page=${page}&limit=${limit}`);
@@ -97,9 +88,6 @@ export default function Products() {
     setSelectedProduct(product.product_id || product.id);
     setEditData({
       name: product.product_name || product.name || "",
-      // FIX (BUG-B08): Hanya sertakan harga modal jika user adalah Owner.
-      // Karyawan tidak berhak melihat harga modal — data tetap di server, tidak dikirim ke heap JS.
-      // Prinsip data minimization: jangan kirim data sensitif yang tidak dibutuhkan role tsb.
       ...(role === 'owner' && { cost: product.product_cost ?? "" }),
       price: product.product_price ?? "",
       stock: product.product_stock ?? "",

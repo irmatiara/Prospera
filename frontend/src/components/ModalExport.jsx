@@ -3,23 +3,22 @@ import { apiFetchBlob, formatError } from '../utils/api';
 import { useToast } from '../contexts/ToastContext';
 
 function ModalExport() {
-    const [loading, setLoading] = useState(false);
+    const [exportingType, setExportingType] = useState(null);
     const { showToast } = useToast();
 
     const handleExport = async (e, format) => {
         if (e && e.preventDefault) e.preventDefault();
+        if (exportingType !== null) return;
+        
         try {
-            setLoading(true);
+            setExportingType(format);
 
-            // Menggunakan apiFetchBlob terpusat (bukan hardcoded URL)
             const blob = await apiFetchBlob(`/analytics/summary/export/${format}`);
             
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             
-            // Tambahkan timestamp (HH-mm-ss) agar nama file selalu unik, menghindari OS file lock 
-            // jika file dengan nama yang sama sedang terbuka di Microsoft Excel.
             const dateStr = new Date().toISOString().split('T')[0];
             const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
             a.download = `Laporan_Prospera_${dateStr}_${timeStr}.${format === 'excel' ? 'xlsx' : 'csv'}`;
@@ -28,8 +27,6 @@ function ModalExport() {
             document.body.appendChild(a);
             a.click();
             
-            // Tahan elemen <a> dan Blob URL selama 60 detik untuk mencegah race condition 
-            // dengan Windows Defender / Chrome Download Manager.
             setTimeout(() => {
                 if (document.body.contains(a)) {
                     document.body.removeChild(a);
@@ -40,7 +37,7 @@ function ModalExport() {
             console.error("Export Error:", err);
             showToast(formatError(err), 'danger');
         } finally {
-            setLoading(false);
+            setExportingType(null);
         }
     };
 
@@ -58,17 +55,17 @@ function ModalExport() {
                                 type="button" 
                                 className="btn btn-outline-success py-3" 
                                 onClick={(e) => handleExport(e, 'excel')}
-                                disabled={loading}
+                                disabled={exportingType !== null}
                             >
-                                <i className="fas fa-file-excel me-2" />{loading ? 'Memproses...' : 'XLSX (Excel)'}
+                                <i className="fas fa-file-excel me-2" />{exportingType === 'excel' ? 'Memproses...' : 'XLSX (Excel)'}
                             </button>
                             <button 
                                 type="button" 
                                 className="btn btn-outline-primary py-3" 
                                 onClick={(e) => handleExport(e, 'csv')}
-                                disabled={loading}
+                                disabled={exportingType !== null}
                             >
-                                <i className="fas fa-file-csv me-2" />{loading ? 'Memproses...' : 'CSV'}
+                                <i className="fas fa-file-csv me-2" />{exportingType === 'csv' ? 'Memproses...' : 'CSV'}
                             </button>
                         </div>
                     </div>

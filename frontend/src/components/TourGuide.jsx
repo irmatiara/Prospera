@@ -155,8 +155,6 @@ function TourGuide() {
         }
     };
 
-    // FIX: Buat komponen Tooltip kustom murni menggunakan class Bootstrap
-    // Ini memastikan background, teks, dan tombol 100% mengikuti tema Light/Dark
     const CustomTooltip = ({ index, step, backProps, primaryProps, skipProps, tooltipProps, isLastStep }) => (
         <div {...tooltipProps} className="card border shadow-lg bg-body text-body" style={{ maxWidth: '400px', zIndex: 10000 }}>
             <div className="card-body p-4">

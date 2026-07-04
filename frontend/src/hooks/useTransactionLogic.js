@@ -1,18 +1,3 @@
-/**
- * useTransactionLogic.js — Orchestrator Hook
- * REFACTOR (F-T02): Dipecah dari god-hook 287 baris menjadi komposisi 3 hook terfokus.
- * 
- * Sebelum: 1 file monolitik dengan 30+ state, 40+ return values, mengelola
- * cart + history + products + pagination + modal + search + date filter sekaligus.
- * 
- * Sesudah: Orchestrator tipis yang menggabungkan:
- * - useCart.js     → Keranjang belanja & proses checkout
- * - useHistory.js  → Riwayat transaksi & filter tanggal
- * 
- * Hook ini tetap meng-export interface yang IDENTIK dengan versi lama,
- * sehingga komponen Transaction.jsx TIDAK perlu diubah sama sekali.
- */
-
 import { useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { getTransactionTypeLabel } from "../utils/transactionHelpers";
@@ -28,38 +13,31 @@ export function useTransactionLogic() {
             const data = await apiFetch("/products");
             setProducts(data.products ? data.products : (Array.isArray(data) ? data : []));
         } catch (error) {
-            // FIX (BUG-08): Hapus referensi historyHook.fetchError yang selalu null saat catch ini
-            // terpanggil \u2014 historyHook.fetchError hanya berubah setelah fetchHistory() selesai,
-            // bukan setelah fetchProducts() gagal. Error kini selalu di-log secara konsisten.
             console.error("Gagal memuat produk:", error);
         }
     };
 
-    // ========== COMPOSE SUB-HOOKS ==========
     const historyHook = useHistory();
     const cartHook = useCart(products, fetchProducts, historyHook.fetchHistory);
 
-    // ========== AUTO-SYNC selected product price ==========
     useEffect(() => {
         if (!cartHook.selectedProduct) {
             cartHook.setModal("");
             cartHook.setHargaJual("");
             return;
         }
-        if (!cartHook.modal) cartHook.setModal(String(cartHook.selectedProduct.product_cost ?? ""));
-        if (!cartHook.hargaJual) {
-            cartHook.setHargaJual(
-                String(cartHook.transactionType === "sell"
-                    ? cartHook.selectedProduct.product_price ?? cartHook.selectedProduct.product_cost
-                    : cartHook.selectedProduct.product_cost)
-            );
-        }
-    }, [cartHook.selectedProduct, cartHook.transactionType]);
+
+        cartHook.setModal(String(cartHook.selectedProduct.product_cost ?? ""));
+        cartHook.setHargaJual(
+            String(cartHook.transactionType === "sell"
+                ? cartHook.selectedProduct.product_price ?? cartHook.selectedProduct.product_cost
+                : cartHook.selectedProduct.product_cost)
+        );
+        
+    }, [cartHook.selectedProduct?.product_id, cartHook.transactionType]);
 
     // ========== INITIAL FETCH ==========
     useEffect(() => {
-        // FIX (MEDIUM-11): AbortController mencegah memory leak jika component
-        // unmount sebelum fetch selesai (misal: user navigasi keluar saat loading).
         const controller = new AbortController();
 
         const initialize = async () => {
@@ -82,8 +60,6 @@ export function useTransactionLogic() {
         return () => controller.abort();
     }, []);
 
-    // ========== RETURN IDENTIK dengan versi lama ==========
-    // Ini memastikan backward-compatibility total dengan Transaction.jsx
     return {
         // Cart
         cartItems: cartHook.cartItems,

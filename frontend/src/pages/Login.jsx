@@ -50,6 +50,7 @@ export default function Login() {
   }, [nav]);
 
   const onSubmit = async (data) => {
+    if (isSubmitting) return;
     try {
       const response = await apiFetch("/auth/login", {
         method: "POST",

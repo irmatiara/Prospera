@@ -1,22 +1,3 @@
-/**
- * style.css — Aturan CSS TAMBAHAN (non-duplikat)
- * REFACTOR (F-T10): Dibersihkan dari duplikasi dengan index.css.
- * 
- * File ini HANYA berisi aturan yang TIDAK ada di index.css:
- * - .logo (branding sidebar)
- * - .nav-button (tombol navigasi)
- * - .nav-pills (tab pills di main content)
- * - .table-simple (tabel khusus dashboard)
- * - .alert-item (item notifikasi stok)
- * - .bi-card (kartu analytics dengan border-top)
- * 
- * Aturan yang SUDAH DIPINDAHKAN ke index.css (dihapus dari sini):
- * - :root, body, .sidebar, .sidebar .nav-link, .main-content
- * - .card, .clean-card, .stat-card, .simple-card
- * - .chart-area, .chart-container, @media responsive
- */
-
-/* LOGO */
 .logo {
     font-size: 1.5rem;
     font-weight: 700;

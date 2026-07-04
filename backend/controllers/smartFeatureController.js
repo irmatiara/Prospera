@@ -38,16 +38,12 @@ exports.getExpiringProducts = async (req, res) => {
 
         expiringProducts.forEach(product => {
             const data = product.toJSON();
-            // Timezone Drift Fix: Gunakan perbandingan murni YYYY-MM-DD
             const expiredDateMoment = moment.tz(data.expired_date, 'Asia/Jakarta').startOf('day');
             const todayMoment = moment.tz(today, 'YYYY-MM-DD', 'Asia/Jakarta').startOf('day');
             
             const daysLeft = expiredDateMoment.diff(todayMoment, 'days');
             data.days_left = daysLeft;
 
-            // FIX (BUG-EXP-01): Gunakan daysLeft <= 0 (bukan < 0).
-            // daysLeft === 0 berarti produk kedaluwarsa HARI INI — harus masuk
-            // ke tab Pemusnahan, bukan tab Segera Kedaluwarsa.
             if (daysLeft <= 0) {
                 already_expired.push(data);
                 total_spoilage_loss += (data.product_cost * data.product_stock);
@@ -87,7 +83,6 @@ exports.writeOffExpiredStock = async (req, res) => {
         const quantity = product.product_stock;
         const spoilage_loss = quantity * product.product_cost;
 
-        // Load model InventoryLog using sequelize
         const { InventoryLog } = require('../models');
 
         await InventoryLog.create({
@@ -122,9 +117,6 @@ exports.applyMarkdown = async (req, res) => {
         const ownerId = req.user.store_id;
         const { product_id, new_price } = req.body;
 
-        // FIX (BUG-05): Validasi harga lebih ketat.
-        // SEBELUMNYA: hanya menolak new_price < 0 — harga Rp 0 atau Rp 1 lolos tanpa peringatan.
-        // SESUDAH   : harga harus > 0, dan di-validasi lagi terhadap harga modal setelah produk ditemukan.
         if (!product_id || new_price === undefined || new_price === null || Number(new_price) <= 0) {
             return res.status(400).json({ message: "Data tidak lengkap atau harga tidak valid. Harga harus lebih dari Rp 0." });
         }
@@ -140,9 +132,6 @@ exports.applyMarkdown = async (req, res) => {
             return res.status(404).json({ message: "Produk tidak ditemukan." });
         }
 
-        // FIX (BUG-05): Batas minimum 10% dari harga modal.
-        // Memberi ruang diskon besar untuk produk expired (hingga -90% modal),
-        // tapi mencegah harga absurd (Rp 1) yang merusak laporan P&L dan tidak terdeteksi anomali.
         const MINIMUM_MARKDOWN_FACTOR = 0.10; // 10% dari modal
         const minimumAllowedPrice = Math.ceil(product.product_cost * MINIMUM_MARKDOWN_FACTOR);
         if (Number(new_price) < minimumAllowedPrice) {
@@ -153,10 +142,7 @@ exports.applyMarkdown = async (req, res) => {
 
         await product.update({ product_price: new_price });
 
-        // FIX (BUG-A09): Kembalikan hanya field yang dibutuhkan frontend, bukan objek produk penuh.
-        // SEBELUMNYA: res.json({ product }) — membocorkan product_cost (harga modal sensitif),
-        //             user_id_fk (internal tenant ID), dan semua field internal lainnya.
-        // SESUDAH   : Hanya kirim product_id dan harga baru sebagai konfirmasi update.
+
         res.status(200).json({ 
             message: "Harga jual produk berhasil diperbarui (Markdown applied).",
             product_id: product.product_id,
@@ -269,8 +255,7 @@ exports.getAnomalies = async (req, res) => {
 exports.resolveAnomaly = async (req, res) => {
     try {
         const ownerId = req.user.store_id || req.user.user_id;
-        // FIX (BUG-RESOLVE-01): req.user adalah instance Sequelize, field-nya user_id bukan id.
-        // Fallback ke req.user.id untuk kompatibilitas jika field berubah di masa depan.
+
         const resolverId = req.user.user_id || req.user.id;
         const { ticket_id, status, resolution_note } = req.body;
 

@@ -47,30 +47,30 @@ export default function TransactionDetailModal({
         aria-modal="true"
         aria-labelledby="trx-modal-title"
         className="modal-content"
-        style={{ width: "min(95%, 780px)", borderRadius: "16px", padding: "24px", border: "none", boxShadow: "0 16px 40px rgba(0,0,0,0.3)" }}
+        style={{ width: "min(95%, 780px)", maxHeight: "90vh", display: "flex", flexDirection: "column", borderRadius: "16px", padding: "24px", border: "none", boxShadow: "0 16px 40px rgba(0,0,0,0.3)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexShrink: 0 }}>
           <div>
-            <h3 id="trx-modal-title">Detail Transaksi</h3>
-            <p style={{ margin: 0, color: "var(--bs-gray-500, #9ca3af)" }}>{formatDatetime(selectedTransaction.transaction_datetime)}</p>
+            <h3 id="trx-modal-title" className="text-body fw-bold mb-1">Detail Transaksi</h3>
+            <p className="text-muted" style={{ margin: 0 }}>{formatDatetime(selectedTransaction.transaction_datetime)}</p>
           </div>
         </div>
 
-        <div style={{ marginBottom: "16px" }}>
+        <div className="text-body" style={{ marginBottom: "16px", flexShrink: 0 }}>
           <strong>Total:</strong> {formatRupiah(selectedTransaction.total_amount)} • <strong>Tipe:</strong> {getTransactionTypeLabel(selectedTransaction)}
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", overflowY: "auto", flex: 1, minHeight: 0, paddingRight: "8px" }}>
           <table className="table-simple" style={{ width: "100%" }} aria-label="Daftar item transaksi">
             <thead>
               <tr style={{ textAlign: "left" }}>
-                <th scope="col">Produk</th>
-                <th scope="col">Tipe</th>
-                <th scope="col">Qty</th>
-                <th scope="col">Modal</th>
-                <th scope="col">Harga</th>
-                <th scope="col">Subtotal</th>
+                <th scope="col" className="bg-body-secondary text-body" style={{ position: "sticky", top: 0, zIndex: 10 }}>Produk</th>
+                <th scope="col" className="bg-body-secondary text-body" style={{ position: "sticky", top: 0, zIndex: 10 }}>Tipe</th>
+                <th scope="col" className="bg-body-secondary text-body" style={{ position: "sticky", top: 0, zIndex: 10 }}>Qty</th>
+                <th scope="col" className="bg-body-secondary text-body" style={{ position: "sticky", top: 0, zIndex: 10 }}>Modal</th>
+                <th scope="col" className="bg-body-secondary text-body" style={{ position: "sticky", top: 0, zIndex: 10 }}>Harga</th>
+                <th scope="col" className="bg-body-secondary text-body" style={{ position: "sticky", top: 0, zIndex: 10 }}>Subtotal</th>
               </tr>
             </thead>
             <tbody>
@@ -97,7 +97,7 @@ export default function TransactionDetailModal({
           </table>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px", flexShrink: 0 }}>
           <button
             className="button"
             onClick={() => printReceipt(selectedTransaction)}

@@ -47,9 +47,6 @@ exports.updateStoreSettings = async (req, res) => {
         };
 
         if (emergency_pin) {
-            // FIX (BUG-A03): Ganti bcrypt.hashSync (blocking, membekukan event loop ~100ms)
-            // dengan await bcrypt.hash() yang async — konsisten dengan seluruh codebase.
-            // Salt factor 12 (bukan 10) agar seragam dengan authController.js.
             updateData.emergency_pin = await bcrypt.hash(emergency_pin, 12);
         }
 

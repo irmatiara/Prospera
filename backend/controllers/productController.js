@@ -6,9 +6,7 @@ const { getStockStatus } = require('../utils/stockHelper');
 const getAllProducts = async (req, res, next) => {
     try {
         const userId = req.user.store_id; 
-        // Default page 1. FIX (HIGH-03): Hardcap limit produk untuk mencegah abuse.
-        // SmartPredict.jsx memanggil tanpa limit (butuh semua produk) → dapat default 500.
-        // Cap 500 cukup untuk produk UMKM manapun dan tidak menyebabkan memory issue.
+
         const MAX_LIMIT = 500;
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 500, MAX_LIMIT);
@@ -37,12 +35,6 @@ const getAllProducts = async (req, res, next) => {
 
         const { calculateRestockForProducts } = require('../services/aiRestockService');
         const restockSuggestions = await calculateRestockForProducts(userId, productIds, productDataMap);
-
-        // FIX (MED-02): Payload Diet — strip field internal/redundant dari response JSON.
-        // user_id_fk: sudah diketahui dari JWT, tidak perlu dikirim ulang ke browser.
-        // deletedAt: selalu null untuk active records (tidak informatif).
-        // updatedAt: frontend tidak butuh ini untuk render UI produk.
-        // Query tetap mengambil semua field (aiRestockService butuh data lengkap).
         const productsWithStatus = rows.map(p => {
             const { user_id_fk, deletedAt, updatedAt, ...productData } = p.toJSON(); // eslint-disable-line no-unused-vars
             productData.stock_status = getStockStatus(
@@ -108,9 +100,6 @@ const createProduct = async (req, res, next) => {
             return res.status(400).json({ message: "Stok tidak boleh negatif." });
         }
 
-        // Validasi Kategori: Apakah mewajibkan Tanggal Kedaluwarsa?
-        // FIX (BUG-B02): Ganti findByPk dengan findOne + filter user_id_fk untuk mencegah
-        // IDOR cross-tenant — sebelumnya owner bisa menggunakan category_id milik toko lain.
         if (category_id_fk) {
             const category = await Category.findOne({
                 where: { category_id: category_id_fk, user_id_fk: userId }
@@ -173,8 +162,6 @@ const updateProduct = async (req, res, next) => {
             return res.status(400).json({ message: "Stok tidak boleh negatif." });
         }
 
-        // Validasi Kategori: Apakah mewajibkan Tanggal Kedaluwarsa?
-        // FIX (BUG-B02): Ganti findByPk dengan findOne + filter user_id_fk (konsisten dengan createProduct).
         if (category_id_fk) {
             const category = await Category.findOne({
                 where: { category_id: category_id_fk, user_id_fk: userId }

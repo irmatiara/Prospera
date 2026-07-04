@@ -1,8 +1,3 @@
-/**
- * validationMiddleware.js — Middleware Validasi Input Terpusat
- * Semua logika validasi dipindahkan dari Controller ke sini
- * sesuai prinsip Clean Architecture & Separation of Concerns.
- */
 const { parsePhoneNumberFromString } = require('libphonenumber-js');
 
 // Regex standar industri untuk validasi format email
@@ -38,7 +33,6 @@ const validateRegister = (req, res, next) => {
         return res.status(400).json({ message: "Password wajib diisi dan minimal 6 karakter." });
     }
 
-    // SECURITY FIX (B-T10): Batas maksimal password untuk mencegah ReDoS pada Bcrypt
     // Bcrypt secara internal hanya memproses 72 byte pertama, sehingga password >64 char tidak berguna
     // dan bisa dimanfaatkan penyerang untuk mengirim string sangat panjang (DoS via slow hashing)
     if (String(password).length > 64) {
@@ -111,7 +105,6 @@ const validateChangePassword = (req, res, next) => {
         return res.status(400).json({ message: "Password baru wajib diisi dan minimal 6 karakter." });
     }
 
-    // FIX (BUG-11): Tambahkan batas maksimal 64 karakter \u2014 konsisten dengan validateRegister & validateLogin.
     // Bcrypt hanya memproses 72 byte pertama; password > 64 karakter tidak menambah keamanan
     // tapi bisa dimanfaatkan penyerang untuk ReDoS via slow hashing (DoS attack vector).
     if (String(new_password).length > 64) {

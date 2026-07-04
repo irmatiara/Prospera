@@ -7,7 +7,7 @@ module.exports = {
       type: Sequelize.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users', // Merujuk ke tabel Users itu sendiri
+        model: 'Users', 
         key: 'user_id'
       },
       onUpdate: 'CASCADE',

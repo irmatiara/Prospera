@@ -1,12 +1,3 @@
-/**
- * authorizeRole.js — Middleware Otorisasi Berbasis Peran (RBAC)
- * Digunakan SETELAH verifyToken untuk memeriksa apakah pengguna
- * memiliki role yang diizinkan untuk mengakses endpoint tertentu.
- *
- * Contoh penggunaan di routes:
- *   router.get('/analytics', verifyToken, authorizeRole('owner'), getAnalytics);
- *   router.post('/checkout', verifyToken, authorizeRole('owner', 'karyawan'), createTransaction);
- */
 const authorizeRole = (...allowedRoles) => {
     return (req, res, next) => {
         // req.user sudah diisi oleh verifyToken (dari JWT payload)

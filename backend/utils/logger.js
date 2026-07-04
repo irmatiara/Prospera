@@ -1,21 +1,3 @@
-/**
- * logger.js — Structured Logging Utility (Enterprise Observability)
- * MEDIUM-14: Standarisasi format log di seluruh backend.
- *
- * Mengapa structured logging?
- *   - Log plain text sulit di-parse oleh monitoring tools (Datadog, CloudWatch, Loki)
- *   - Structured JSON log bisa di-query: "cari semua error dari route /checkout"
- *   - Format konsisten membuat grep/alerting lebih reliable
- *
- * Implementasi: Zero-dependency — menggunakan console.log dengan JSON serialization.
- * Drop-in compatible dengan Pino/Winston jika di-upgrade nanti:
- *   Ganti: const logger = require('./logger');
- *   Dengan: const logger = require('pino')({ level: 'info' }); (interface sama)
- *
- * Level: error > warn > info > debug
- * Di production (NODE_ENV=production): debug level di-suppress otomatis.
- */
-
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 
@@ -28,9 +10,7 @@ const IS_PRODUCTION = NODE_ENV === 'production';
 const formatLog = (level, message, meta = {}) => {
     const now = new Date();
     const entry = {
-        timestamp: now.toISOString(),  // UTC — untuk machine parsing & log aggregator (Datadog, Loki)
-        // FIX (BUG-B09): Tambahkan timestamp WIB agar debug manual tidak membingungkan.
-        // Tim Indonesia membaca log dalam konteks WIB, UTC 10:00 = WIB 17:00 — 7 jam selisih.
+        timestamp: now.toISOString(),  
         timestamp_wib: new Intl.DateTimeFormat('id-ID', {
             timeZone: 'Asia/Jakarta',
             year: 'numeric', month: '2-digit', day: '2-digit',
@@ -103,8 +83,7 @@ const logger = {
         const level = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
         const now = new Date();
         const entry = {
-            timestamp: now.toISOString(),   // UTC — untuk machine/aggregator
-            // FIX (BUG-B09): Tambahkan timestamp WIB — konsisten dengan formatLog.
+            timestamp: now.toISOString(),   
             timestamp_wib: new Intl.DateTimeFormat('id-ID', {
                 timeZone: 'Asia/Jakarta',
                 year: 'numeric', month: '2-digit', day: '2-digit',

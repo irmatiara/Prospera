@@ -1,17 +1,3 @@
-/**
- * requestId.js — Middleware Correlation ID (Enterprise Observability)
- *
- * Menyuntikkan X-Request-ID unik ke setiap request masuk.
- * Berguna untuk:
- *   - Melacak request di log lintas-service
- *   - Memudahkan debugging: "cari error dengan X-Request-ID: abc123"
- *   - Standar enterprise (Google Cloud, AWS ALB, dan Nginx semuanya pakai ini)
- *
- * Perilaku:
- *   - Jika client sudah mengirim X-Request-ID header, header itu DIPAKAI (idempotent)
- *   - Jika tidak, generate UUID baru
- *   - Header ini SELALU dikembalikan ke client dalam response
- */
 const { randomUUID } = require('crypto');
 
 const requestId = (req, res, next) => {

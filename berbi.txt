@@ -1,42 +1,72 @@
-a).Nama Tim: Berbi
+a. NIM dan Nama Anggota Kelompok: 
+241110859 - Nikita Ho
+241110227 - Stefani Evelyn Sukamto 
+241111605 - Chiquita Jesslyn Giantito 
+241112440 - Irma Tiara 
+241110486 - Ulya Salsabila 
 
-b).anggota:
--Nikita ho (241110859) 
--Stefani Evelyn Sukamto (241110227) 
--Ulya Salsabila (241110485)
--Chiquita Jesslyn Giantito (241111605)
--Irma Tiara (241112440)
+b. Tema/topik web: 
+Prospera - Sistem Manajemen Penjualan Inventaris UMKM 
+Prospera adalah platform Smart Economy berbasis Node.js yang dirancang khusus untuk memberdayakan Usaha Mikro, Kecil, dan Menengah (UMKM) melalui pemanfaatan analisis data yang cerdas. Prospera hadir layaknya asisten digital yang membantu pelaku UMKM untuk lebih memahami kondisi usaha mereka sehari-hari. Oleh karena itu, sistem ini tidak hanya sekadar mencatat barang masuk dan keluar. Prospera dibekali dengan berbagai fitur pintar, seperti kemampuan untuk melihat tren penjualan bulanan, hingga memprediksi potensi pendapatan di masa depan. Pada akhirnya, melalui kemudahan pembuatan laporan keuangan yang serba otomatis, Prospera diharapkan bisa benar-benar membantu UMKM untuk "naik kelas" dan lebih mandiri secara teknologi maupun finansial.
 
-c). *   Frontend: React.js (https://react.dev/) dengan Vite (https://vitejs.dev/) dan React Router (https://reactrouter.com/)
-*   Gaya & Layout: Bootstrap 5 (https://getbootstrap.com/) & Google Fonts Inter (https://fonts.google.com/specimen/Inter)
-*   Ikon: FontAwesome 6 (https://fontawesome.com/) & Bootstrap Icons (https://icons.getbootstrap.com/)
-*   Grafik: Chart.js (https://www.chartjs.org/) melalui React-Chartjs-2 (https://react-chartjs-2.js.org/)
-*   Backend: Node.js (https://nodejs.org/) & Express.js (https://expressjs.com/)
-*   Database Management: Sequelize ORM (https://sequelize.org/)
-*   Keamanan & Autentikasi: JSON Web Token / JWT (https://jwt.io/) & bcryptjs (https://www.npmjs.com/package/bcryptjs)
-*   Utilitas Laporan: ExcelJS (https://www.npmjs.com/package/exceljs)
-*   Konfigurasi & Konektivitas: Dotenv (https://www.npmjs.com/package/dotenv) & CORS (https://www.npmjs.com/package/cors)
+c. Teknologi yang digunakan: 
+1. Frontend (Antarmuka Pengguna):
+   - Library Utama: React.js (v19) dengan Vite sebagai Build Tool (Super fast HMR).
+   - State & Routing: React Router DOM (v7).
+   - Form Handling & Validasi: React Hook Form dipadukan dengan Zod (Schema Validation).
+   - Visualisasi Data: Chart.js & react-chartjs-2 untuk analitik grafik interaktif.
+   - Styling & Ikon: Bootstrap (v5.3), FontAwesome Free (v7), dan Lucide-React.
+   - Hosting Frontend: Vercel
+2. Backend (Server & API):
+   - Environment: Node.js
+   - Framework: Express.js (v5)
+   - Keamanan (Security): Helmet (HTTP Headers), bcryptjs (Enkripsi Password), JWT (JSON Web Token), Cookie-Parser (HttpOnly Cookies), dan CORS.
+   - Utilitas Lanjutan: ExcelJS (Export Laporan), Moment-Timezone (Akurasi waktu GMT+7), dan Node-Cron (Background jobs).
+   - Hosting Backend: Railway
+3. Database:
+   - Sistem Database: MySQL (mysql2)
+   - ORM (Object-Relational Mapping): Sequelize ORM (v6).
+   - Hosting Database: Aiven
+*Link Template: Aplikasi ini dibangun murni dari awal (From Scratch) menggunakan library komponen Bootstrap tanpa menggunakan pre-made template pihak ketiga mana pun.*
 
+d. Inovasi dan Kreativitas:
+(Fungsionalitas)
+- Dashboard Analitik Bisnis Interaktif (Visualisasi tren pendapatan real-time)
+- AI Smart Predict (Time Series): Memprediksi estimasi pendapatan harian
+- AI Smart Restock: Menghitung & memberi saran otomatis jumlah barang yang harus distok ulang
+- Smart Expiry & Markdown System: Mendeteksi produk yang hampir expired
+- Fraud Detection (Anti-Kecurangan): Mendeteksi transaksi di luar jam operasional
+- Sistem Keamanan Jam Operasional: Membatasi kasir beroperasi tanpa izin lembur
+- Multi-role & Ekspor Laporan: Pemisahan hak akses dan ekspor data ke Excel/CSV
+(Tampilan / UI & UX)
+- Enterprise Theme Architecture: Sistem tema Dark Mode dan Light Mode terintegrasi yang tidak hanya mengubah warna dasar, tetapi menyesuaikan saturasi dan kontras komponen hingga ke tabel laporan.
 
-d). 
-*   Authentication System: Sistem login yang diamankan berlapis menggunakan JSON Web Token (JWT) dan algoritma enkripsi password menggunakan Bcrypt.
+e. Link Hosting, Username dan Password Admin:
+Link Hosting Frontend:
+1. 241110227 - Stefani Evelyn Sukamto: https://prospera-rust.vercel.app/
+2. 241111605 - Chiquita Jesslyn Giantito: https://prospera-pi.vercel.app/
+3. 241112440 - Irma Tiara: https://prospera-phi-blue.vercel.app/
+4. 241110486 - Ulya Salsabila: https://prospera-gold.vercel.app/
+5. 241110859 - Nikita Ho: https://prospera-tau.vercel.app/
 
-*   Authorizations: Menerapkan pengamanan anti-IDOR (Insecure Direct Object Reference). Sistem melakukan validasi otoritas dengan mengekstrak ID secara internal dari payload token, bukan mengambilnya dari parameter URL yang mudah dimanipulasi.
+Link Hosting Backend:
+1. 241110227 - Stefani Evelyn Sukamto: https://prospera-production-9267.up.railway.app
+2. 241111605 - Chiquita Jesslyn Giantito: https://prospera-production-19eb.up.railway.app
+3. 241112440 - Irma Tiara: https://prospera-production-ab7a.up.railway.app
+4. 241110486 - Ulya Salsabila: https://prospera-production-e178.up.railway.app
+5. 241110859 - Nikita Ho: https://prospera-tau.vercel.app/
 
-*   Product Management: Modul pengelolaan data produk yang saling berelasi erat dengan riwayat transaksi secara aman.
+Username (owner): prospera01@gmail.com 
+Password : password123
 
-*   Transaction Engine: Mesin transaksi yang dilengkapi dengan fitur Row-Level Locking (t.LOCK.UPDATE) dan sistem Rollback otomatis (sequelize.transaction()). Inovasi ini menjamin integritas data dan mencegah race condition (bentrok data jika ada dua transaksi di detik yang sama).
+Username (Karyawan): siti.aminah@prospera.com
+Password : password123
 
-*   Profit dan Loss Tracking: Sistem perhitungan otomatis untuk memantau margin keuntungan bersih dan modal dari setiap produk.
-
-*   Top Performance: Menyajikan analisis peringkat produk dengan performa penjualan terbaik.
-
-*   Time Series Analysis: Pemantauan tren penjualan dan performa bisnis secara visual berdasarkan pergerakan waktu menggunakan integrasi Chart.js.
-
-*   Sales Summary: Ringkasan komprehensif mengenai total transaksi, omzet pendapatan, dan total profit pengguna.
-
-*   Export to CSV/Excel: Fitur unggulan yang dirancang dengan manajemen memori tingkat lanjut. File tidak dibuat secara fisik di hardisk server, melainkan di-generate dalam bentuk Buffer Stream lalu dikirim ke browser melalui Header Manipulation (Content-Disposition: attachment). Struktur kodenya juga mengimplementasikan pola arsitektur OOP yaitu Class Inheritance agar sangat efisien.
-
-*   Inventory Alert: Indikator dan peringatan cerdas otomatis yang menyala ketika stok produk sudah berada pada batas minimum.
-
-*   Sales Forecasting: Fitur prediksi cerdas yang membantu pengguna memproyeksikan potensi penjualan di masa depan, memberikan insight bisnis yang bernilai untuk pengambilan keputusan.
+f. Nilai yang diharapkan dan alasannya:
+Ekspektasi Nilai: 90
+Alasan: Kami merasa pantas mendapatkan nilai 90 karena aplikasi kami tidak sekadar mengandalkan fitur dasar, melainkan sudah diimplementasikan dengan sangat komprehensif. Berikut adalah beberapa alasannya:
+- Proses Dasar & Flow yang Solid: Seluruh fungsi inti (CRUD data dan alur transaksi kasir) sudah terpenuhi dengan alur yang sangat mulus tanpa hambatan.
+- Sistem Manajemen Produk (Product Management) Lanjutan: Tidak hanya mencatat stok, aplikasi memiliki sistem otomatis cerdas yang memberikan peringatan (*warning*) saat inventaris menipis dan mendeteksi barang yang hampir kedaluwarsa.
+- Sistem Autentikasi Terpisah (Role-based Login): Ada pemisahan login dan hak akses yang aman serta sangat jelas antara Owner (pemilik bisnis) dan Karyawan (kasir).
+- Pencegahan Kecurangan (Loss Prevention): Aplikasi kami dapat melacak anomali seperti kasir yang bertransaksi di luar jam kerja atau memanipulasi diskon/harga modal, yang biasanya hanya ada di software kelas enterprise.
+- Desain Arsitektur Modern: Antarmuka dibangun secara kustom dengan *Dark Mode* penuh dan responsif, menjadikan User Experience-nya sangat nyaman (tidak kaku seperti aplikasi tugas pada umumnya).

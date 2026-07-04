@@ -1,14 +1,9 @@
-/**
- * appConfig.js — Pusat Konfigurasi Aplikasi (Single Source of Truth)
- * Semua konstanta kritis didefinisikan di sini untuk mencegah hardcoding berulang.
- */
 require('dotenv').config();
 
 module.exports = {
-    // --- Konfigurasi Rate Limiter ---
     AUTH_RATE_LIMIT: {
-        windowMs: 15 * 60 * 1000, // 15 menit
-        max: 10,                  // Maksimal 10 percobaan per jendela waktu
+        windowMs: 15 * 60 * 1000,
+        max: 10,                  
         standardHeaders: true,
         legacyHeaders: false,
         message: {
@@ -16,8 +11,8 @@ module.exports = {
         }
     },
     API_RATE_LIMIT: {
-        windowMs: 15 * 60 * 1000, // 15 menit
-        max: 500,                 // Dinaikkan menjadi 500 untuk pengembangan/penggunaan normal
+        windowMs: 15 * 60 * 1000, 
+        max: 500,                 
         standardHeaders: true,
         legacyHeaders: false,
         message: {

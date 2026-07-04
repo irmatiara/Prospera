@@ -47,6 +47,7 @@ export default function Categories() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const payload = {

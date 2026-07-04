@@ -229,57 +229,57 @@ function SmartExpiryWidget({ isDashboard = false }) {
 
                         <div className="modal-body p-4 bg-body-tertiary">
                             {activeTab === 'WARNING' && (
-                                <div className="table-responsive bg-body rounded shadow-sm">
-                                    <table className="table table-hover align-middle mb-0">
-                                        <thead className="table-secondary">
-                                            <tr>
-                                                <th>Produk</th>
-                                                <th>Kedaluwarsa</th>
-                                                <th>Stok</th>
-                                                <th>Harga Saat Ini</th>
-                                                <th>Aksi Preventif</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {expiringSoon.length === 0 ? (
-                                                <tr><td colSpan={5} className="text-center text-muted py-4">Aman. Tidak ada produk mendekati kedaluwarsa.</td></tr>
-                                            ) : (
-                                                expiringSoon.map(p => (
-                                                    <tr key={p.product_id}>
-                                                        <td>
-                                                            <div className="fw-semibold">{p.product_name}</div>
-                                                            <div className="text-muted small">{p.Category?.category_name || '-'}</div>
-                                                        </td>
-                                                        <td>
-                                                            <div className={`fw-bold ${p.days_left <= 7 ? 'text-danger' : 'text-warning'}`}>
-                                                                {p.expired_date} ({p.days_left} hari lagi)
-                                                            </div>
-                                                        </td>
-                                                        <td>{p.product_stock}</td>
-                                                        <td>{formatRupiah(p.product_price)}</td>
-                                                        <td>
-                                                            {p.product_price <= p.product_cost ? (
-                                                                <button 
-                                                                    onClick={() => handleOpenModal(p)}
-                                                                    className="btn btn-sm btn-outline-secondary fw-semibold"
-                                                                    title="Diskon jual rugi / harga modal sudah aktif"
-                                                                >
-                                                                    <i className="fas fa-check-circle me-1 text-success"></i>Diskon Aktif
-                                                                </button>
-                                                            ) : (
-                                                                <button 
-                                                                    onClick={() => handleOpenModal(p)}
-                                                                    className="btn btn-sm btn-outline-warning fw-semibold"
-                                                                >
-                                                                    <i className="fas fa-tags me-1"></i>Terapkan Diskon
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
+                                <div style={{ maxHeight: "500px", overflowY: "auto", paddingRight: "5px", display: "flex", flexDirection: "column" }}>
+                                    {expiringSoon.length === 0 ? (
+                                        <div className="text-center text-muted py-5">Aman. Tidak ada produk mendekati kedaluwarsa.</div>
+                                    ) : (
+                                        expiringSoon.map(p => (
+                                            <div key={p.product_id} className="mb-3 p-3 rounded bg-body shadow-sm border border-warning border-opacity-50">
+                                                <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                                    <div>
+                                                        <div className="fw-semibold text-body h6 mb-0">{p.product_name}</div>
+                                                        <div className="text-muted small">{p.Category?.category_name || '-'}</div>
+                                                    </div>
+                                                    <div className="text-end">
+                                                        <div className={`fw-bold ${p.days_left <= 7 ? 'text-danger' : 'text-warning'}`}>
+                                                            {p.days_left} hari lagi
+                                                        </div>
+                                                        <div className="text-muted small">{p.expired_date}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="d-flex justify-content-between align-items-center mt-2">
+                                                    <div className="d-flex gap-4">
+                                                        <div>
+                                                            <small className="text-muted d-block" style={{fontSize: "11px"}}>Stok Tersisa</small>
+                                                            <span className="fw-bold">{p.product_stock} unit</span>
+                                                        </div>
+                                                        <div>
+                                                            <small className="text-muted d-block" style={{fontSize: "11px"}}>Harga Jual</small>
+                                                            <span className="fw-bold text-success">{formatRupiah(p.product_price)}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        {p.product_price <= p.product_cost ? (
+                                                            <button 
+                                                                onClick={() => handleOpenModal(p)}
+                                                                className="btn btn-sm btn-outline-secondary fw-semibold"
+                                                                title="Diskon jual rugi / harga modal sudah aktif"
+                                                            >
+                                                                <i className="fas fa-check-circle me-1 text-success"></i>Diskon Aktif
+                                                            </button>
+                                                        ) : (
+                                                            <button 
+                                                                onClick={() => handleOpenModal(p)}
+                                                                className="btn btn-sm btn-warning text-dark fw-bold shadow-sm"
+                                                            >
+                                                                <i className="fas fa-tags me-1"></i>Beri Diskon
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             )}
 
@@ -294,56 +294,52 @@ function SmartExpiryWidget({ isDashboard = false }) {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="table-responsive bg-body rounded shadow-sm">
-                                        <table className="table table-hover align-middle mb-0">
-                                            <thead className="table-secondary">
-                                                <tr>
-                                                    <th>Produk</th>
-                                                    <th>Status (Basi)</th>
-                                                    <th>Sisa Stok</th>
-                                                    <th>Kerugian Susut (Modal)</th>
-                                                    <th>Aksi Kepatuhan</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {alreadyExpired.length === 0 ? (
-                                                    <tr><td colSpan={5} className="text-center text-success py-4"><i className="fas fa-check-circle me-1"></i>Tidak ada produk basi. Kepatuhan terjaga 100%.</td></tr>
-                                                ) : (
-                                                    alreadyExpired.map(p => {
-                                                        const loss = p.product_cost * p.product_stock;
-                                                        return (
-                                                            <tr key={p.product_id}>
-                                                                <td>
-                                                                    <div className="fw-semibold text-danger">{p.product_name}</div>
-                                                                    <div className="text-muted small">{p.Category?.category_name || '-'}</div>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="fw-bold text-danger">
-                                                                        {p.expired_date} ({p.days_left === 0 ? 'Hari ini!' : `${Math.abs(p.days_left)} hari lewat`})
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span className="badge bg-danger">{p.product_stock}</span>
-                                                                </td>
-                                                                <td>
-                                                                    <div className="fw-bold text-body">{formatRupiah(loss)}</div>
-                                                                    <div className="text-muted small">{formatRupiah(p.product_cost)}/item</div>
-                                                                </td>
-                                                                <td>
-                                                                    <button 
-                                                                        onClick={() => handleOpenWriteOffModal(p)}
-                                                                        className="btn btn-sm btn-danger fw-semibold"
-                                                                        disabled={isSubmitting}
-                                                                    >
-                                                                        <i className="fas fa-dumpster-fire me-1"></i>Musnahkan Stok
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })
-                                                )}
-                                            </tbody>
-                                        </table>
+                                    <div style={{ maxHeight: "400px", overflowY: "auto", paddingRight: "5px", display: "flex", flexDirection: "column" }}>
+                                        {alreadyExpired.length === 0 ? (
+                                            <div className="text-center text-success py-5"><i className="fas fa-check-circle me-1 fs-3 d-block mb-2"></i>Tidak ada produk basi. Kepatuhan terjaga 100%.</div>
+                                        ) : (
+                                            alreadyExpired.map(p => {
+                                                const loss = p.product_cost * p.product_stock;
+                                                return (
+                                                    <div key={p.product_id} className="mb-3 p-3 rounded bg-body shadow-sm border border-danger">
+                                                        <div className="d-flex justify-content-between mb-2 pb-2 border-bottom border-danger border-opacity-25">
+                                                            <div>
+                                                                <div className="fw-bold text-danger h6 mb-0">{p.product_name}</div>
+                                                                <div className="text-muted small">{p.Category?.category_name || '-'}</div>
+                                                            </div>
+                                                            <div className="text-end">
+                                                                <div className="fw-bold text-danger">
+                                                                    {p.days_left === 0 ? 'Hari ini!' : `${Math.abs(p.days_left)} hari lewat`}
+                                                                </div>
+                                                                <div className="text-muted small">{p.expired_date}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="d-flex justify-content-between align-items-center mt-2">
+                                                            <div className="d-flex gap-4">
+                                                                <div>
+                                                                    <small className="text-muted d-block" style={{fontSize: "11px"}}>Sisa Stok Basi</small>
+                                                                    <span className="badge bg-danger fs-6">{p.product_stock} unit</span>
+                                                                </div>
+                                                                <div>
+                                                                    <small className="text-muted d-block" style={{fontSize: "11px"}}>Kerugian Susut (Modal)</small>
+                                                                    <span className="fw-bold text-body">{formatRupiah(loss)}</span>
+                                                                    <span className="text-muted small d-block" style={{fontSize: '10px'}}>{formatRupiah(p.product_cost)}/item</span>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <button 
+                                                                    onClick={() => handleOpenWriteOffModal(p)}
+                                                                    className="btn btn-sm btn-danger fw-bold shadow-sm"
+                                                                    disabled={isSubmitting}
+                                                                >
+                                                                    <i className="fas fa-dumpster-fire me-1"></i>Musnahkan
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 </React.Fragment>
                             )}

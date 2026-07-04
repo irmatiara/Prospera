@@ -5,8 +5,6 @@ const { getDateFilter, buildWIBDateRange } = require("../utils/dateUtils");
 const { getStatusBreakdown, getFinancialSummary, getProductBreakdown } = require("../services/analyticsService"); 
 
 /**
- * SECURITY FIX (B-S15): Sanitasi parameter limit dari query string.
- * Menolak nilai negatif, nol, NaN, dan membatasi maksimum 100 untuk mencegah abuse.
  * @param {string|number} rawLimit - Nilai limit dari req.query
  * @param {number} defaultVal - Nilai default jika limit tidak valid (default: 5)
  * @returns {number} Limit yang aman
@@ -17,13 +15,11 @@ const sanitizeLimit = (rawLimit, defaultVal = 5) => {
     return Math.min(parsed, 100); // Cap at 100 to prevent memory abuse
 };
 
-// 1. SUMMARY — REFACTOR (B-T14): Menggunakan shared analyticsService
 const getSummary = async (req, res, next) => {
     try {
         const { startDate, endDate } = req.query;
         const userId = req.user.store_id;
 
-        // Gunakan shared service (Single Source of Truth)
         const [statusBreakdown, financial, formattedDetails] = await Promise.all([
             getStatusBreakdown(startDate, endDate, userId),
             getFinancialSummary(startDate, endDate, userId),
@@ -34,14 +30,8 @@ const getSummary = async (req, res, next) => {
         const { items_sold, revenue, total_profit, total_loss } = financial;
         const average_sale = success > 0 ? Math.round(revenue / success) : 0;
 
-        // Revenue growth (logika unik untuk endpoint ini, tetap inline)
         let revenue_growth = "N/A";
         if (startDate && endDate) {
-            // FIX (BUG-A05): Gunakan moment-timezone untuk kalkulasi periode sebelumnya.
-            // SEBELUMNYA: new Date(startDate) + setDate() + toISOString().split('T')[0]
-            //             — toISOString() mengembalikan UTC string, bisa off 1 hari jika
-            //             server timezone berubah atau startDate datang dengan offset.
-            // SESUDAH   : moment() untuk manipulasi tanggal yang timezone-safe dan konsisten.
             const momentStart = moment(startDate, 'YYYY-MM-DD');
             const momentEnd   = moment(endDate,   'YYYY-MM-DD');
             const diffDays = momentEnd.diff(momentStart, 'days') || 1;
@@ -85,13 +75,11 @@ const getSummary = async (req, res, next) => {
     }
 };
 
-// 2. PROFIT & LOSS — FIX (SPOILAGE-01): Ikutkan kerugian kedaluwarsa dari InventoryLog
 const getProfit = async (req, res, next) => {
     try {
         const { startDate, endDate } = req.query;
         const userId = req.user.store_id;
 
-        // Query 1: P&L dari transaksi penjualan
         const result = await TransactionDetail.findAll({
             include: [{
                 model: Transaction,
@@ -107,8 +95,6 @@ const getProfit = async (req, res, next) => {
             raw: true
         });
 
-        // Query 2: Kerugian kedaluwarsa dari InventoryLog
-        // FIX (L1-02): Gunakan buildWIBDateRange — presisi 00:00:00 s/d 23:59:59 WIB
         const spoilageWhere = { user_id_fk: userId, action: 'WRITE_OFF_EXPIRED' };
         const dateRange = buildWIBDateRange(startDate, endDate);
         if (dateRange) spoilageWhere.createdAt = dateRange;
@@ -128,7 +114,6 @@ const getProfit = async (req, res, next) => {
         const spoilage_loss      = parseInt(spoilageData[0]?.total_spoilage)      || 0;
         const qty_destroyed      = parseInt(spoilageData[0]?.total_qty_destroyed) || 0;
 
-        // Total kerugian nyata = jual rugi + modal produk expired yang dimusnahkan
         const total_loss = sell_loss + spoilage_loss;
         const net_income = profit - total_loss;
         const profit_margin = revenue > 0 ? ((net_income / revenue) * 100).toFixed(2) : 0;
@@ -136,10 +121,10 @@ const getProfit = async (req, res, next) => {
         res.json({ 
             revenue, 
             total_profit: profit, 
-            sell_loss,         // Kerugian dari jual di bawah modal
-            spoilage_loss,     // Kerugian dari pemusnahan stok expired
-            total_loss,        // Gabungan kedua sumber kerugian
-            qty_destroyed,     // Total unit yang dimusnahkan
+            sell_loss,        
+            spoilage_loss,     
+            total_loss,       
+            qty_destroyed,     
             net_income, 
             profit_margin: `${profit_margin}%` 
         });

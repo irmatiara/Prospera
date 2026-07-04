@@ -11,7 +11,6 @@ const { exportLimiter } = require('../middleware/rateLimiter');
 // Import fungsi dari Controller
 const { createTransaction, getTransactionHistory, exportTransactionHistory, getTransactionSummary, unlockOvertime } = require('../controllers/transactionController');
 
-// SECURITY FIX (B-S23): Terapkan RBAC ketat pada endpoint transaksi
 // Hanya role 'owner' dan 'karyawan' yang diizinkan — mencegah role tak terduga mengakses endpoint ini
 router.post('/checkout', verifyToken, authorizeRole('owner', 'karyawan'), checkTimeAccess, validateTransaction, createTransaction);
 router.post('/unlock-overtime', verifyToken, authorizeRole('owner', 'karyawan'), unlockOvertime);

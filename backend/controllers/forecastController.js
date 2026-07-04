@@ -1,20 +1,10 @@
 const { Transaction } = require('../models');
 const { Sequelize, Op } = require('sequelize');
 
-// Menghitung prediksi penjualan harian berdasarkan rata-rata 7 hari terakhir (tanpa outlier)
 const getForecast = async (req, res, next) => {
   try {
     const userId = req.user.store_id;
     const moment = require('moment-timezone');
-
-    // FIX (BUG-A06): Ganti `transaction_datetime + INTERVAL 7 HOUR` yang hardcoded.
-    // SEBELUMNYA: + INTERVAL 7 HOUR mengasumsikan server selalu UTC. Jika MySQL session
-    //             timezone dikonfigurasi WIB, penambahan 7 jam menjadi double-shift (+14 jam).
-    // SESUDAH   :
-    //   1. CONVERT_TZ dengan fixed-offset notation (+00:00 → +07:00) tidak memerlukan
-    //      MySQL timezone tables dan bekerja di semua provider cloud.
-    //   2. Batas 7 hari dihitung di Node.js dengan moment-timezone WIB agar konsisten
-    //      dengan seluruh codebase, bukan bergantung pada DATE_SUB(NOW()) server.
     const timeZoneAdj = "CONVERT_TZ(transaction_datetime, '+00:00', '+07:00')";
     const sevenDaysAgo = moment().tz('Asia/Jakarta').subtract(7, 'days').startOf('day').toDate();
 

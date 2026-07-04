@@ -1,14 +1,3 @@
-/**
- * useCart.js — Hook untuk manajemen keranjang belanja
- * REFACTOR (F-T02): Dipecah dari god-hook useTransactionLogic.js
- * 
- * Bertanggung jawab atas:
- * - State keranjang (cartItems)
- * - Validasi & penambahan item ke keranjang
- * - Perhitungan total
- * - Proses simpan transaksi ke backend
- */
-
 import { useState, useMemo } from "react";
 import { apiFetch, formatError } from "../utils/api";
 import { formatDatetime } from "../utils/format";
@@ -36,26 +25,18 @@ export function useCart(products, fetchProducts, fetchHistory) {
     const [searchTerm, setSearchTerm] = useState("");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // FIX (HIGH-07): Debounce search term — filter hanya berjalan setelah user
-    // berhenti mengetik selama 300ms. Input sendiri tetap update real-time.
-    // Mencegah re-render berlebihan pada daftar ratusan produk.
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    // PERFORMANCE FIX (F-S19): Memoize derived state
     const selectedProduct = useMemo(() => 
         products.find((p) => String(p.product_id) === String(selectedProductId)),
         [products, selectedProductId]
     );
 
-    // PERFORMANCE FIX (F-S19): Memoize filtered list
-    // Menggunakan debouncedSearchTerm (bukan searchTerm) agar filter tidak berjalan
-    // di setiap keystroke — hanya setelah user berhenti mengetik 300ms.
     const filteredProducts = useMemo(() => 
         products.filter((p) => p.product_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())),
         [products, debouncedSearchTerm]
     );
 
-    // FIX: Hitung total berdasarkan tipe transaksi (selaras dengan backend)
     const totalAmount = useMemo(() => {
         return cartItems.reduce((sum, item) => {
             const itemTotal = item.transactionType === 'buy'
@@ -106,19 +87,11 @@ export function useCart(products, fetchProducts, fetchHistory) {
                 (item) => item.product_id === selectedProduct.product_id && item.transactionType === transactionType
             );
 
-            // FIX (BUG-B06): Input `datetime-local` menghasilkan format 'YYYY-MM-DDTHH:mm' tanpa info timezone.
-            // Tanpa suffix, new Date('2026-07-02T22:00') diinterpretasikan sebagai timezone browser —
-            // jika browser di UTC, ini tersimpan 7 jam lebih awal dari yang dimaksud user.
-            // Dengan menambahkan '+07:00', JavaScript memperlakukan string ini sebagai WIB secara eksplisit.
             const validDatetime = datetime 
                 ? new Date(datetime + '+07:00').toISOString()
                 : new Date().toISOString();
 
             if (existingIndex >= 0) {
-                    // FIX (HIGH-FE-01): Gunakan .map() + object spread untuk update immutable.
-                    // Sebelumnya: [...current] hanya shallow copy array — elemen masih reference
-                    // objek lama, sehingga updated[idx].quantity = ... adalah MUTASI LANGSUNG.
-                    // Ini melanggar React immutability dan bisa menyebabkan bug di Concurrent Mode.
                     return current.map((item, idx) =>
                         idx === existingIndex
                             ? { ...item, quantity: Number(item.quantity) + Number(qty), ...(datetime ? { datetime: validDatetime } : {}) }
@@ -154,6 +127,8 @@ export function useCart(products, fetchProducts, fetchHistory) {
     };
 
     const saveTransaction = async () => {
+        if (saving) return;
+
         if (cartItems.length === 0) {
             setMessage("Keranjang masih kosong. Yuk, tambahkan produk dulu sebelum menyimpan transaksi!");
             setMessageType("warning");
@@ -175,9 +150,6 @@ export function useCart(products, fetchProducts, fetchHistory) {
                 }))
             };
 
-            // FIX (CRITICAL-03): Generate UUID idempotency key per checkout attempt.
-            // Backend akan menolak request duplikat dengan key yang sama dalam 5 menit.
-            // Key baru = checkout baru yang sah (user boleh transaksi lagi setelah berhasil).
             const idempotencyKey = crypto.randomUUID();
 
             const response = await apiFetch("/transactions/checkout", {
@@ -190,7 +162,6 @@ export function useCart(products, fetchProducts, fetchHistory) {
             setLastTransaction({
                 items: [...cartItems],
                 total: totalAmount,
-                // FIX (MEDIUM-FE-03): Gunakan formatDatetime untuk konsistensi timezone WIB
                 date: formatDatetime(new Date()),
                 type: transactionType
             });
@@ -215,6 +186,7 @@ export function useCart(products, fetchProducts, fetchHistory) {
     };
 
     const submitOvertimeAuth = async (pin) => {
+        setSaving(true);
         try {
             await apiFetch("/transactions/unlock-overtime", {
                 method: "POST",
@@ -222,9 +194,12 @@ export function useCart(products, fetchProducts, fetchHistory) {
             });
             // Sukses buka sesi, tutup modal dan ulangi transaksi
             setOvertimeModal({ isOpen: false, errorMsg: '' });
-            await saveTransaction();
+            await saveTransaction(); // Di dalam sini sudah ada setSaving(false) pada catch/finally
         } catch (err) {
-            throw new Error(formatError(err));
+            const errorMessage = formatError(err);
+            showToast(errorMessage, "danger");
+            setSaving(false); // MATIKAN LOADING AGAR LAYAR TIDAK FREEZE
+            throw new Error(errorMessage);
         }
     };
     return {

@@ -14,10 +14,6 @@ import { ConfirmProvider } from './contexts/ConfirmContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
-// FIX (HIGH-FE-03): Code Splitting via React.lazy() + dynamic import.
-// Vite akan memecah setiap page menjadi chunk JS terpisah yang hanya di-download
-// saat user navigasi ke route tersebut. Ini mempercepat initial load secara signifikan.
-// Login & Register tetap eager (entry point — tidak boleh lazy).
 const Landing        = lazy(() => import('./pages/Landing'));
 const Index          = lazy(() => import('./pages/Index'));
 const BiAnalytics    = lazy(() => import('./pages/BiAnalytics'));
@@ -29,8 +25,6 @@ const UserManagement = lazy(() => import('./pages/UserManagement'));
 const StoreSettings  = lazy(() => import('./pages/StoreSettings'));
 const Features       = lazy(() => import('./pages/Features'));
 
-// Fallback UI saat chunk sedang di-download (lazy loading)
-// Menggunakan Bootstrap spinner agar selaras dengan design system yang sudah ada
 const PageLoadingFallback = () => (
     <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
         <div className="text-center">
@@ -106,8 +100,6 @@ function App() {
             <ConfirmProvider>
                 <Router>
                     <Layout>
-                        {/* FIX (HIGH-FE-03): Suspense boundary untuk lazy page chunks.
-                            Sidebar tetap terlihat saat page chunk di-download. */}
                         <Suspense fallback={<PageLoadingFallback />}>
                             <Routes>
                                 {/* Landing Page is Public */}

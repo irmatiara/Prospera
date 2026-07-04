@@ -9,20 +9,15 @@ const swaggerUi = require('swagger-ui-express');
 const { sequelize } = require('./models');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { CORS_ORIGIN, BODY_SIZE_LIMIT } = require('./config/appConfig');
-// FIX (HIGH-04): Request/Correlation ID Middleware untuk observability enterprise
 const requestId = require('./middleware/requestId');
-// FIX (MEDIUM-14): Structured Logging — ganti raw console.log dengan logger terstruktur
 const logger = require('./utils/logger');
 
-// --- Fail-fast: Validasi konfigurasi kritis sebelum server berjalan ---
 if (!process.env.JWT_SECRET) {
     console.error('\n❌ FATAL ERROR: JWT_SECRET belum dikonfigurasi di file .env!');
     console.error('   Server tidak dapat berjalan tanpa kunci rahasia JWT.\n');
     process.exit(1);
 }
 
-// SECURITY FIX (B-T01): Tolak JWT_SECRET yang terlalu lemah/pendek
-// Minimum 32 karakter (128-bit entropy) untuk mencegah brute-force
 if (process.env.JWT_SECRET.length < 32) {
     console.error('\n❌ FATAL ERROR: JWT_SECRET terlalu lemah! Minimal 32 karakter.');
     console.error('   Generate secret baru: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"\n');
@@ -31,18 +26,10 @@ if (process.env.JWT_SECRET.length < 32) {
 
 const app = express();
 
-// FIX (V6.0): Reverse Proxy Suicide Prevention
-// Harus diset SEBELUM express-rate-limit agar IP terbaca sebagai IP Klien asli (via X-Forwarded-For)
-// bukan sebagai IP Cloudflare/Nginx Load Balancer tunggal.
 app.set('trust proxy', 1);
 
-// ===== LAPISAN KEAMANAN (Security Middleware Stack) =====
-
-// Layer 0: Request ID — Inject X-Request-Id ke setiap request untuk tracing & observability
 app.use(requestId);
 
-// FIX (MEDIUM-14): HTTP Request Logger — log setiap request dengan structured JSON
-// Di production ini memudahkan monitoring dan alerting
 app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
@@ -131,21 +118,16 @@ app.get('/', (req, res) => {
 });
 
 // Swagger UI untuk dokumentasi OpenAPI
-const swaggerSpec = require('./docs/Swagger Documentation Package/swagger.json');
+const swaggerSpec = require('./docs/swagger.json');
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ===== PENANGANAN ERROR =====
 
-// Penanganan Rute Tidak Ditemukan (404 Handler)
-// SECURITY FIX (B-S02): Tidak lagi menampilkan req.originalUrl ke client (information disclosure)
 app.use((req, res) => {
     res.status(404).json({ message: "Endpoint yang Anda akses tidak tersedia." });
 });
 
-// Penanganan Kesalahan Global (500 Handler) — Sentral & Aman
-// Menangkap semua error yang dilempar via next(error) dari Controller
 app.use((err, req, res, next) => {
-    // FIX (MEDIUM-14): Structured error log — parseable oleh monitoring tools
     logger.error('Unhandled server error', {
         requestId: req.requestId || 'N/A',
         route: `${req.method} ${req.originalUrl}`,
@@ -154,12 +136,10 @@ app.use((err, req, res, next) => {
         isOperational: err.isOperational || false
     });
 
-    // Kirim respons generik ke client (TIDAK membocorkan detail error)
     res.status(err.statusCode || 500).json({ 
         message: err.isOperational 
             ? err.message 
             : "Terjadi kesalahan internal sistem yang tidak terduga.",
-        // RequestId dikembalikan agar frontend bisa report ke support
         requestId: req.requestId
     });
 });
@@ -185,8 +165,6 @@ sequelize.authenticate()
             });
         });
 
-        // PERFORMANCE FIX (B-S01): Graceful Shutdown
-        // Memastikan koneksi DB ditutup dengan benar saat server dimatikan
         const gracefulShutdown = (signal) => {
             console.log(`\n⚠️  Sinyal ${signal} diterima. Memulai graceful shutdown...`);
             server.close(() => {
@@ -202,7 +180,6 @@ sequelize.authenticate()
                     });
             });
 
-            // Force shutdown setelah 10 detik jika graceful gagal
             setTimeout(() => {
                 console.error('❌ Graceful shutdown timeout. Force exit.');
                 process.exit(1);

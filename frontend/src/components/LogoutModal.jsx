@@ -1,7 +1,3 @@
-/**
- * LogoutModal.jsx — Modal konfirmasi logout
- * REFACTOR (F-T03): Diekstrak dari Sidebar.jsx untuk modularisasi.
- */
 export default function LogoutModal({ show, onClose, onConfirm }) {
     if (!show) return null;
 

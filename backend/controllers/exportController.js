@@ -1,9 +1,3 @@
-/**
- * exportController.js — Export data ke Excel dan CSV
- * REFACTOR (B-T15): Sekarang menggunakan analyticsService.js
- * sebagai sumber query tunggal. Tidak lagi menduplikasi query dari analytics.
- */
-
 const { ExcelReport, CsvReport } = require("../services/reportService");
 const { getStatusBreakdown, getFinancialSummary, getProductBreakdown } = require("../services/analyticsService");
 

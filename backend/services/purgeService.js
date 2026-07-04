@@ -1,23 +1,4 @@
 /**
- * purgeService.js — Hard Purge Service (Right to be Forgotten)
- * FIX (HIGH-02): Implementasi UU PDP Pasal 35 — Hak Penghapusan Data (Right to be Forgotten)
- *
- * Fungsi hardPurgeStore() menghapus SELURUH jejak data satu toko (tenant) secara permanen
- * dari database aktif, mengikuti urutan yang aman sesuai foreign key constraint.
- *
- * URUTAN HAPUS (dependency-safe):
- *   1. InventoryLogs    → FK ke Product, User
- *   2. AnomalyTickets   → FK ke User, Transaction, TransactionDetail
- *   3. TransactionDetails → FK ke Transaction, Product
- *   4. Transactions     → FK ke User
- *   5. StoreSettings    → FK ke User
- *   6. Products         → FK ke User, Category
- *   7. Karyawan (Users with owner_id = storeId) → FK ke User
- *   8. Owner User       → Root record
- *
- * PENTING: Semua operasi dijalankan dalam SATU transaksi database (ACID).
- * Jika ada langkah yang gagal, seluruh penghapusan di-rollback — tidak ada data
- * yang terhapus sebagian (partial delete).
  *
  * @param {object} sequelizeInstance - Instance sequelize dari models/index.js
  * @param {object} models - Semua model Sequelize { User, Product, ... }

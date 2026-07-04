@@ -48,6 +48,7 @@ export default function UserManagement() {
     useEffect(() => { fetchUsers(); }, []);
 
     const handleCreateUser = async () => {
+        if (isSubmitting) return;
         // Validasi client-side
         if (!username.trim()) {
             showToast("Username wajib diisi.", 'warning');
@@ -61,9 +62,7 @@ export default function UserManagement() {
             showToast("Password minimal 6 karakter.", 'warning');
             return;
         }
-        // FIX (BUG-B07): Tambahkan batas maksimal 64 karakter — konsisten dengan backend (BUG-A04)
-        // dan dengan form Register/Login. Bcrypt hanya memproses 72 byte pertama;
-        // input > 64 karakter tidak menambah keamanan tapi memicu validasi error backend yang membingungkan.
+
         if (password.length > 64) {
             showToast("Password maksimal 64 karakter.", 'warning');
             return;
@@ -111,6 +110,7 @@ export default function UserManagement() {
     };
 
     const handleSaveEdit = async () => {
+        if (isSubmitting) return;
         if (!editUsername.trim() || !editEmail.trim() || !EMAIL_REGEX.test(editEmail.trim())) {
             showToast("Data tidak valid. Periksa kembali input Anda.", "warning");
             return;
@@ -145,6 +145,7 @@ export default function UserManagement() {
     };
 
     const handleSaveResetPassword = async () => {
+        if (isSubmitting) return;
         if (!resetPasswordValue || resetPasswordValue.length < 6) {
             showToast("Password minimal 6 karakter.", "warning");
             return;

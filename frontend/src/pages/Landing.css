@@ -66,9 +66,7 @@
 
 /* Image Blend Effect */
 .hero-image-blend {
-    /* Murni CSS Masking: Memudarkan keempat sisi gambar (Kiri, Kanan, Atas, Bawah) 
-       sehingga gambar terlihat seperti awan lembut yang menyatu dengan latar belakang, 
-       menghancurkan garis tepi kotak yang kaku. */
+
     -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 45%, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);
     mask-image: radial-gradient(ellipse 80% 80% at 50% 45%, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);
 }

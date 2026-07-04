@@ -12,8 +12,6 @@ function Index() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // PERFORMANCE FIX (F-T05): Pisahkan input state (UI) dari applied state (API)
-    // Input state: berubah setiap keystroke, TIDAK memicu API call
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     // Applied state: berubah 500ms setelah user berhenti mengetik, MEMICU API call
@@ -114,7 +112,6 @@ function Index() {
         return sum + (loss > 0 ? loss * (item.quantity || 1) : 0);
     }, 0);
     
-    // FIX: Gunakan data REAL dari API, bukan mock
     const sortedProducts = data.products.map(p => ({
         id: p.product_id,
         name: p.product_name,
@@ -127,7 +124,6 @@ function Index() {
 
     const restockSuggestions = sortedProducts.filter(p => p.suggested_restock > 0);
 
-    // FIX: Kalkulasi Estimasi Penjualan secara logis (Average Daily Revenue * 30 Hari)
     let projectedSales = 0;
     if (appliedStartDate && appliedEndDate) {
         const start = new Date(appliedStartDate);
@@ -140,7 +136,6 @@ function Index() {
         projectedSales = data.monthly.length > 0 ? parseFloat(data.monthly[data.monthly.length - 1].revenue) || 0 : 0;
     }
 
-    // FIX: Gunakan laba_bersih real dari API, bukan mock 40%
     const chartData = useMemo(() => {
         return {
             labels: data.monthly.map(m => m.month),

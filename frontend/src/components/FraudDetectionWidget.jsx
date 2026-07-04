@@ -44,7 +44,6 @@ function FraudDetectionWidget() {
     };
 
     const submitResolve = async () => {
-        // Lapis 6: Spacebar Trick Sanitization
         if (activeResolution.note.trim() === '') {
             setActiveResolution(prev => ({ ...prev, error: "Catatan tidak boleh kosong atau hanya spasi!" }));
             return;
@@ -59,7 +58,6 @@ function FraudDetectionWidget() {
                 resolution_note: activeResolution.note.trim() 
             });
             await fetchAnomalies();
-            // Penyiaran Alarm: Beritahu seluruh aplikasi bahwa data fraud telah berubah
             window.dispatchEvent(new Event('fraudDataUpdated'));
             setActiveResolution({ ticket_id: null, status: null, note: '', error: null }); 
         } catch (err) {
@@ -110,186 +108,175 @@ function FraudDetectionWidget() {
 
     const renderTimeTable = (data, isOpen) => (
         <div className="mb-4">
-            <h6 className="fw-bold text-body"><i className="fas fa-clock text-warning me-2"></i>Anomali Waktu (Aktivitas di Luar Jam)</h6>
-            <div className="table-responsive">
-                <table className="table table-sm table-hover align-middle">
-                    <thead className="table-secondary">
-                        <tr>
-                            <th>Transaksi</th>
-                            <th>Waktu & Kasir</th>
-                            <th>Keterangan</th>
-                            {isOpen ? <th>Aksi</th> : <th>Status Resolusi</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.map((item, idx) => (
-                            <React.Fragment key={item.ticket_id}>
-                                <tr>
-                                    <td>
-                                        <div className="fw-semibold">#{item.transaction_id}</div>
-                                        <div className="small text-muted">{new Date(item.datetime).toLocaleDateString('id-ID')}</div>
-                                    </td>
-                                    <td>
-                                        <div className="text-danger small fw-bold">
-                                            {new Intl.DateTimeFormat('id-ID', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                second: '2-digit',
-                                                timeZoneName: 'short'
-                                            }).format(new Date(item.datetime))}
-                                        </div>
-                                        <div className="small text-muted">{item.cashier}</div>
-                                    </td>
-                                    <td>
-                                        <div className="text-muted small">{item.reason}</div>
-                                    </td>
+            <h6 className="fw-bold text-body mb-3"><i className="fas fa-clock text-warning me-2"></i>Anomali Waktu (Aktivitas di Luar Jam)</h6>
+            <div style={{ maxHeight: "350px", overflowY: "auto", paddingRight: "5px", display: "flex", flexDirection: "column" }}>
+                {data.map((item, idx) => (
+                    <React.Fragment key={item.ticket_id}>
+                        <div className="mb-3 p-3 rounded bg-body shadow-sm border border-warning border-opacity-50">
+                            <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                <div>
+                                    <div className="fw-semibold text-body mb-1">#{item.transaction_id}</div>
+                                    <div className="small text-muted">{new Date(item.datetime).toLocaleDateString('id-ID')}</div>
+                                </div>
+                                <div className="text-end">
+                                    <div className="text-danger small fw-bold">
+                                        {new Intl.DateTimeFormat('id-ID', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            timeZoneName: 'short'
+                                        }).format(new Date(item.datetime))}
+                                    </div>
+                                    <div className="small text-muted mt-1">Kasir: {item.cashier}</div>
+                                </div>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    <small className="text-muted d-block" style={{fontSize: "11px"}}>Keterangan</small>
+                                    <span className="text-muted small">{item.reason}</span>
+                                </div>
+                                <div>
                                     {isOpen ? (
-                                        <td>
-                                            <div className="d-flex gap-2">
-                                                <button onClick={() => openResolveDialog(item.ticket_id, 'DISMISSED')} className="btn btn-sm btn-outline-secondary" disabled={actionLoading}>
-                                                    <i className="fas fa-eye-slash me-1"></i> Wajar
-                                                </button>
-                                                <button onClick={() => openResolveDialog(item.ticket_id, 'RESOLVED')} className="btn btn-sm btn-outline-primary" disabled={actionLoading}>
-                                                    <i className="fas fa-check me-1"></i> Selesai
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <div className="d-flex gap-2">
+                                            <button onClick={() => openResolveDialog(item.ticket_id, 'DISMISSED')} className="btn btn-sm btn-outline-secondary fw-semibold" disabled={actionLoading}>
+                                                <i className="fas fa-eye-slash me-1"></i> Wajar
+                                            </button>
+                                            <button onClick={() => openResolveDialog(item.ticket_id, 'RESOLVED')} className="btn btn-sm btn-outline-primary fw-semibold" disabled={actionLoading}>
+                                                <i className="fas fa-check me-1"></i> Selesai
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <td>
-                                            <span className={`badge ${item.status === 'RESOLVED' ? 'bg-success' : 'bg-secondary'} me-2`}>
+                                        <div className="text-end">
+                                            <span className={`badge ${item.status === 'RESOLVED' ? 'bg-success' : 'bg-secondary'} mb-1 d-inline-block`}>
                                                 {item.status}
                                             </span>
-                                            <div className="small text-muted mt-1">Oleh: {item.resolved_by || 'Sistem'}</div>
+                                            <div className="small text-muted">Oleh: {item.resolved_by || 'Sistem'}</div>
                                             <div className="small text-muted fst-italic">"{item.resolution_note}"</div>
-                                        </td>
+                                        </div>
                                     )}
-                                </tr>
-                                {activeResolution.ticket_id === item.ticket_id && (
-                                    <tr className="table-secondary">
-                                        <td colSpan={4} className="p-3 border-start border-primary border-4 shadow-sm">
-                                            <div className="d-flex flex-column gap-2">
-                                                <div className="d-flex justify-content-between align-items-center">
-                                                    <label className="form-label text-primary small fw-bold mb-0">
-                                                        <i className="fas fa-edit me-1"></i>Catatan Resolusi ({activeResolution.status})
-                                                    </label>
-                                                    <button type="button" className="btn-close btn-sm" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}></button>
-                                                </div>
-                                                {activeResolution.error && (
-                                                    <div className="alert alert-danger small py-1 mb-0"><i className="fas fa-exclamation-circle me-1"></i>{activeResolution.error}</div>
-                                                )}
-                                                <textarea 
-                                                    className="form-control form-control-sm" 
-                                                    rows="2" 
-                                                    autoFocus
-                                                    placeholder="Ketik penjelasan di sini..."
-                                                    value={activeResolution.note}
-                                                    onChange={(e) => setActiveResolution(prev => ({ ...prev, note: e.target.value }))}
-                                                    disabled={actionLoading}
-                                                ></textarea>
-                                                <div className="d-flex justify-content-end gap-2 mt-1">
-                                                    <button type="button" className="btn btn-sm btn-light border" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}>Batal</button>
-                                                    <button type="button" className="btn btn-sm btn-primary" onClick={submitResolve} disabled={actionLoading}>
-                                                        {actionLoading ? <><span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Simpan...</> : 'Simpan Catatan'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </React.Fragment>
-                        ))}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+                        </div>
+                        {activeResolution.ticket_id === item.ticket_id && (
+                            <div className="mb-3 p-3 bg-secondary bg-opacity-10 rounded border-start border-primary border-4 shadow-sm ms-3">
+                                <div className="d-flex flex-column gap-2">
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <label className="form-label text-primary small fw-bold mb-0">
+                                            <i className="fas fa-edit me-1"></i>Catatan Resolusi ({activeResolution.status})
+                                        </label>
+                                        <button type="button" className="btn-close btn-sm" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}></button>
+                                    </div>
+                                    {activeResolution.error && (
+                                        <div className="alert alert-danger small py-1 mb-0"><i className="fas fa-exclamation-circle me-1"></i>{activeResolution.error}</div>
+                                    )}
+                                    <textarea 
+                                        className="form-control form-control-sm" 
+                                        rows="2" 
+                                        autoFocus
+                                        placeholder="Ketik penjelasan di sini..."
+                                        value={activeResolution.note}
+                                        onChange={(e) => setActiveResolution(prev => ({ ...prev, note: e.target.value }))}
+                                        disabled={actionLoading}
+                                    ></textarea>
+                                    <div className="d-flex justify-content-end gap-2 mt-1">
+                                        <button type="button" className="btn btn-sm btn-light border fw-semibold" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}>Batal</button>
+                                        <button type="button" className="btn btn-sm btn-primary fw-semibold" onClick={submitResolve} disabled={actionLoading}>
+                                            {actionLoading ? <><span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Simpan...</> : 'Simpan Catatan'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </React.Fragment>
+                ))}
             </div>
         </div>
     );
 
     const renderPriceTable = (data, isOpen) => (
         <div className="mb-4">
-            <h6 className="fw-bold text-body"><i className="fas fa-tags text-danger me-2"></i>Anomali Harga (Jual Rugi / Margin Tipis)</h6>
-            <div className="table-responsive">
-                <table className="table table-sm table-hover align-middle">
-                    <thead className="table-secondary">
-                        <tr>
-                            <th>Transaksi & Produk</th>
-                            <th>Harga (Modal vs Jual)</th>
-                            <th>Keterangan</th>
-                            {isOpen ? <th>Aksi</th> : <th>Status Resolusi</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.map((item, idx) => (
-                            <React.Fragment key={item.ticket_id}>
-                                <tr>
-                                    <td>
-                                        <div className="fw-semibold">#{item.transaction_id} - {item.product}</div>
-                                        <div className="small text-muted">Kasir: {item.cashier}</div>
-                                    </td>
-                                    <td>
-                                        <div className="small text-muted">Modal: {formatRupiah(item.capital_cost)}</div>
-                                        <div className="text-danger fw-bold">Jual: {formatRupiah(item.selling_price)}</div>
-                                    </td>
-                                    <td>
-                                        <span className="badge bg-danger">Margin: {item.margin_percentage}%</span>
-                                        <div className="text-muted small mt-1">{item.reason}</div>
-                                    </td>
+            <h6 className="fw-bold text-body mb-3"><i className="fas fa-tags text-danger me-2"></i>Anomali Harga (Jual Rugi / Margin Tipis)</h6>
+            <div style={{ maxHeight: "350px", overflowY: "auto", paddingRight: "5px", display: "flex", flexDirection: "column" }}>
+                {data.map((item, idx) => (
+                    <React.Fragment key={item.ticket_id}>
+                        <div className="mb-3 p-3 rounded bg-body shadow-sm border border-danger border-opacity-50">
+                            <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                <div>
+                                    <div className="fw-semibold text-body mb-1">#{item.transaction_id} - {item.product}</div>
+                                    <div className="small text-muted">Kasir: {item.cashier}</div>
+                                </div>
+                                <div className="text-end">
+                                    <span className="badge bg-danger mb-1">Margin: {item.margin_percentage}%</span>
+                                </div>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mt-2">
+                                <div className="d-flex gap-4">
+                                    <div>
+                                        <small className="text-muted d-block" style={{fontSize: "11px"}}>Harga Jual</small>
+                                        <span className="fw-bold text-danger">{formatRupiah(item.selling_price)}</span>
+                                    </div>
+                                    <div>
+                                        <small className="text-muted d-block" style={{fontSize: "11px"}}>Modal</small>
+                                        <span className="text-muted small">{formatRupiah(item.capital_cost)}</span>
+                                    </div>
+                                </div>
+                                <div>
                                     {isOpen ? (
-                                        <td>
-                                            <div className="d-flex gap-2">
-                                                <button onClick={() => openResolveDialog(item.ticket_id, 'DISMISSED')} className="btn btn-sm btn-outline-secondary" disabled={actionLoading}>
-                                                    <i className="fas fa-eye-slash me-1"></i> Wajar
-                                                </button>
-                                                <button onClick={() => openResolveDialog(item.ticket_id, 'RESOLVED')} className="btn btn-sm btn-outline-primary" disabled={actionLoading}>
-                                                    <i className="fas fa-check me-1"></i> Selesai
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <div className="d-flex gap-2">
+                                            <button onClick={() => openResolveDialog(item.ticket_id, 'DISMISSED')} className="btn btn-sm btn-outline-secondary fw-semibold" disabled={actionLoading}>
+                                                <i className="fas fa-eye-slash me-1"></i> Wajar
+                                            </button>
+                                            <button onClick={() => openResolveDialog(item.ticket_id, 'RESOLVED')} className="btn btn-sm btn-outline-primary fw-semibold" disabled={actionLoading}>
+                                                <i className="fas fa-check me-1"></i> Selesai
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <td>
-                                            <span className={`badge ${item.status === 'RESOLVED' ? 'bg-success' : 'bg-secondary'} me-2`}>
+                                        <div className="text-end">
+                                            <span className={`badge ${item.status === 'RESOLVED' ? 'bg-success' : 'bg-secondary'} mb-1 d-inline-block`}>
                                                 {item.status}
                                             </span>
-                                            <div className="small text-muted mt-1">Oleh: {item.resolved_by || 'Sistem'}</div>
+                                            <div className="small text-muted">Oleh: {item.resolved_by || 'Sistem'}</div>
                                             <div className="small text-muted fst-italic">"{item.resolution_note}"</div>
-                                        </td>
+                                        </div>
                                     )}
-                                </tr>
-                                {activeResolution.ticket_id === item.ticket_id && (
-                                    <tr className="table-secondary">
-                                        <td colSpan={4} className="p-3 border-start border-primary border-4 shadow-sm">
-                                            <div className="d-flex flex-column gap-2">
-                                                <div className="d-flex justify-content-between align-items-center">
-                                                    <label className="form-label text-primary small fw-bold mb-0">
-                                                        <i className="fas fa-edit me-1"></i>Catatan Resolusi ({activeResolution.status})
-                                                    </label>
-                                                    <button type="button" className="btn-close btn-sm" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}></button>
-                                                </div>
-                                                {activeResolution.error && (
-                                                    <div className="alert alert-danger small py-1 mb-0"><i className="fas fa-exclamation-circle me-1"></i>{activeResolution.error}</div>
-                                                )}
-                                                <textarea 
-                                                    className="form-control form-control-sm" 
-                                                    rows="2" 
-                                                    autoFocus
-                                                    placeholder="Ketik penjelasan di sini..."
-                                                    value={activeResolution.note}
-                                                    onChange={(e) => setActiveResolution(prev => ({ ...prev, note: e.target.value }))}
-                                                    disabled={actionLoading}
-                                                ></textarea>
-                                                <div className="d-flex justify-content-end gap-2 mt-1">
-                                                    <button type="button" className="btn btn-sm btn-light border" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}>Batal</button>
-                                                    <button type="button" className="btn btn-sm btn-primary" onClick={submitResolve} disabled={actionLoading}>
-                                                        {actionLoading ? <><span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Simpan...</> : 'Simpan Catatan'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </React.Fragment>
-                        ))}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+                            <div className="mt-2 text-muted small border-top pt-2 mt-2">
+                                <i className="fas fa-info-circle me-1"></i>{item.reason}
+                            </div>
+                        </div>
+                        {activeResolution.ticket_id === item.ticket_id && (
+                            <div className="mb-3 p-3 bg-secondary bg-opacity-10 rounded border-start border-primary border-4 shadow-sm ms-3">
+                                <div className="d-flex flex-column gap-2">
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <label className="form-label text-primary small fw-bold mb-0">
+                                            <i className="fas fa-edit me-1"></i>Catatan Resolusi ({activeResolution.status})
+                                        </label>
+                                        <button type="button" className="btn-close btn-sm" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}></button>
+                                    </div>
+                                    {activeResolution.error && (
+                                        <div className="alert alert-danger small py-1 mb-0"><i className="fas fa-exclamation-circle me-1"></i>{activeResolution.error}</div>
+                                    )}
+                                    <textarea 
+                                        className="form-control form-control-sm" 
+                                        rows="2" 
+                                        autoFocus
+                                        placeholder="Ketik penjelasan di sini..."
+                                        value={activeResolution.note}
+                                        onChange={(e) => setActiveResolution(prev => ({ ...prev, note: e.target.value }))}
+                                        disabled={actionLoading}
+                                    ></textarea>
+                                    <div className="d-flex justify-content-end gap-2 mt-1">
+                                        <button type="button" className="btn btn-sm btn-light border fw-semibold" onClick={() => setActiveResolution({ ticket_id: null })} disabled={actionLoading}>Batal</button>
+                                        <button type="button" className="btn btn-sm btn-primary fw-semibold" onClick={submitResolve} disabled={actionLoading}>
+                                            {actionLoading ? <><span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Simpan...</> : 'Simpan Catatan'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </React.Fragment>
+                ))}
             </div>
         </div>
     );

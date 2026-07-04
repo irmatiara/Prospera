@@ -13,7 +13,7 @@ module.exports = {
       user_id_fk: {
         type: Sequelize.INTEGER,
         references: {
-          model: 'Users', // Nyambung ke tabel Users
+          model: 'Users', 
           key: 'user_id'
         },
         onUpdate: 'CASCADE',

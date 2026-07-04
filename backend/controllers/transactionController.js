@@ -2,14 +2,10 @@ const { sequelize, Transaction, TransactionDetail, Product, Category, User, Stor
 const { Op } = require('sequelize'); 
 const ExcelJS = require('exceljs');
 const bcrypt = require('bcryptjs');
-const moment = require('moment-timezone'); // FIX (BUG-01 + BUG-02): Timezone-aware date operations
+const moment = require('moment-timezone'); 
 
-// FIX (CRITICAL-03): Idempotency Key Store — Cegah transaksi duplikat
-// (misal: double-click tombol, retry jaringan, form re-submit)
-// Menggunakan in-memory Map + TTL cleanup (tanpa Redis) — cocok untuk
-// single-process Node.js POS. Jika scale-out multi-proses, migrasi ke Redis.
-const idempotencyStore = new Map(); // key => { processedAt: timestamp }
-const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000; // 5 menit
+const idempotencyStore = new Map(); 
+const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000; 
 
 // Cleanup otomatis setiap 10 menit — cegah memory leak
 const idempotencyCleanup = setInterval(() => {
@@ -27,15 +23,10 @@ const createTransaction = async (req, res, next) => {
     const userId = req.user.store_id; 
     const { transaction_type = null, items } = req.body; 
 
-    // SECURITY FIX (B-T07): Waktu transaksi dikontrol SERVER, bukan client
     const serverDatetime = new Date();
 
-    // FIX (CRITICAL-03): Idempotency check — tolak request duplikat
-    // Frontend menyertakan header X-Idempotency-Key (UUID v4) per checkout attempt.
-    // Ini mencegah double-click, retry jaringan, atau form re-submit membuat 2 transaksi.
     const idempotencyKey = req.headers['x-idempotency-key'];
     if (idempotencyKey) {
-        // Isolasi per-user: key = userId::idempotencyKey (cegah collision antar toko)
         const storeKey = `${userId}::${idempotencyKey}`;
         if (idempotencyStore.has(storeKey)) {
             return res.status(409).json({
@@ -47,7 +38,6 @@ const createTransaction = async (req, res, next) => {
         idempotencyStore.set(storeKey, { processedAt: Date.now() });
     }
 
-    // ENTERPRISE FIX: Payload Array Bomber Protection
     if (!items || items.length === 0) {
         return res.status(400).json({ message: "Keranjang kosong." });
     }
@@ -55,7 +45,6 @@ const createTransaction = async (req, res, next) => {
         return res.status(400).json({ message: "Keranjang maksimal 100 jenis barang per transaksi. Silakan pecah transaksi." });
     }
 
-    // ENTERPRISE FIX: Fat-Finger Validation di API
     for (let item of items) {
         if (!item.quantity || item.quantity <= 0 || item.quantity > 1000) {
             return res.status(400).json({ message: "Kuantitas barang tidak valid (maksimal 1000 unit)." });
@@ -71,7 +60,6 @@ const createTransaction = async (req, res, next) => {
         let cart_minimum_allowed = 0; 
         let validItems = [];
 
-        // ENTERPRISE FIX: Bulk Fetching & Deadlock Prevention
         const uniqueProductIds = [...new Set(items.map(item => item.product_id))].sort((a, b) => a - b);
         
         const products = await Product.findAll({
@@ -84,7 +72,6 @@ const createTransaction = async (req, res, next) => {
             lock: t.LOCK.UPDATE
         });
 
-        // ENTERPRISE FIX: Mismatch Length Check (Barang Gaib)
         if (products.length !== uniqueProductIds.length) {
             throw new Error("Terdapat produk yang tidak valid atau baru saja dihapus oleh Manajer. Silakan muat ulang halaman.");
         }
@@ -105,7 +92,6 @@ const createTransaction = async (req, res, next) => {
                 throw new Error(`Stok ${product.product_name} tidak mencukupi. Sisa stok: ${product.product_stock}`);
             }
 
-            // ENTERPRISE FIX: Zero-Trust Architecture (Harga mutlak dari Database)
             const capital_cost = product.product_cost;
             const selling_price = product.product_price;
 
@@ -137,14 +123,12 @@ const createTransaction = async (req, res, next) => {
         }
 
         // Tahap 2: Tentukan tipe transaksi header
-        // FIX: Jika ada campuran tipe transaksi dalam satu checkout, tolak transaksi
         const itemTypes = [...new Set(validItems.map(item => item.transaction_type))];
         if (itemTypes.length > 1) {
             throw new Error('Tidak dapat mencampur tipe transaksi (buy & sell) dalam satu checkout. Pisahkan menjadi transaksi terpisah.');
         }
         const headerTransactionType = itemTypes[0];
 
-        // ENTERPRISE FIX: Dynamic Cart Floor (Lapis 2)
         if (headerTransactionType === 'sell' && req.user.role === 'karyawan') {
             if (total_amount < cart_minimum_allowed) {
                 throw new Error("Otorisasi Diperlukan: Total akhir nota berada di bawah batas modal keranjang. Hubungi Manajer.");
@@ -180,7 +164,6 @@ const createTransaction = async (req, res, next) => {
         });
 
         // Tahap 5: Update stok produk (tetap per-item karena row-level lock diperlukan)
-        // PERFORMANCE FIX (B-S10): Menggunakan Promise.all untuk paralelisasi
         await Promise.all(validItems.map(async (vItem) => {
             if (vItem.transaction_type === 'sell') {
                 if (vItem.current_stock - vItem.quantity === 0) {
@@ -239,9 +222,6 @@ const getTransactionHistory = async (req, res, next) => {
         const { start, end } = req.query;
         let whereCondition = { user_id_fk: userId };
 
-        // FIX (HIGH-03): Hardcap limit untuk mencegah memory bomb.
-        // Frontend sudah kirim limit=10 (historyLimit). Cap ini adalah safety net
-        // untuk mencegah abuse via curl/Postman dengan limit=999999.
         const MAX_LIMIT = 100;
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 50, MAX_LIMIT);
@@ -249,10 +229,6 @@ const getTransactionHistory = async (req, res, next) => {
 
         // Filter berdasarkan kolom transaction_datetime
         if (start && end) {
-            // FIX (BUG-A02): Ganti string literal dengan moment-timezone WIB-aware Date object.
-            // SEBELUMNYA: `${start} 00:00:00` diinterpretasikan MySQL sesuai session timezone server (UTC),
-            //             sehingga data transaksi antara 00:00–06:59 WIB terlewat dari riwayat.
-            // SESUDAH   : moment.tz() eksplisit membangun boundary dalam WIB sebelum dikirim ke Sequelize.
             const start_wib = moment.tz(start + ' 00:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate();
             const end_wib   = moment.tz(end   + ' 23:59:59', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate();
             whereCondition.transaction_datetime = {
@@ -293,31 +269,18 @@ const getTransactionHistory = async (req, res, next) => {
     }
 };
 
-// 3. Fungsi untuk export laporan transaksi ke Excel
-// FIX (CRIT-02 + MED-04): Tambahkan 3 lapis proteksi Memory Bomb:
-// 1. Default range 30 hari terakhir jika tidak ada parameter tanggal
-// 2. Validasi maksimum range 366 hari (1 tahun fiskal)
-// 3. Hard cap 10.000 transaksi header — tolak dengan HTTP 413 jika melebihi
 const exportTransactionHistory = async (req, res, next) => {
     try {
         const userId = req.user.store_id;
-        // FIX (BUG-A01): Gunakan let agar start/end bisa di-reassign saat tidak ada parameter.
-        // SEBELUMNYA: const { start, end } — reassign di bawah menyebabkan TypeError crash.
-        // SESUDAH   : let memungkinkan fallback ke default 30 hari berjalan dengan benar.
         let { start, end } = req.query;
         const { format } = req.query;
 
-        // FIX (MED-04 + BUG-01): Default ke 30 hari terakhir jika tidak ada parameter tanggal.
-        // SEBELUMNYA: toISOString() menghasilkan tanggal UTC, bukan WIB — bisa mundur 1 hari
-        //             antara jam 00:00–07:00 WIB (tengah malam sampai subuh).
-        // SESUDAH   : moment-timezone memastikan tanggal dihitung dalam zona WIB secara eksplisit.
         if (!start || !end) {
             const todayWIB = moment().tz('Asia/Jakarta');
             end   = todayWIB.format('YYYY-MM-DD');
             start = todayWIB.clone().subtract(30, 'days').format('YYYY-MM-DD');
         }
 
-        // FIX (CRIT-02): Validasi format dan rentang tanggal maksimum 366 hari
         const startDate = new Date(start);
         const endDate   = new Date(end);
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -327,14 +290,12 @@ const exportTransactionHistory = async (req, res, next) => {
             return res.status(400).json({ message: 'Tanggal akhir tidak boleh lebih awal dari tanggal mulai.' });
         }
         const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-        // FIX (SECURITY): Ubah maksimum menjadi 31 hari untuk mengurangi beban server
         if (diffDays > 31) {
             return res.status(400).json({
                 message: `Rentang tanggal terlalu besar (${diffDays} hari). Maksimum export adalah 31 hari. Silakan pecah menjadi beberapa periode.`
             });
         }
 
-        // FIX (BUG-A02): moment-timezone WIB boundary — konsisten dengan getDateFilter() di dateUtils.js.
         const whereCondition = {
             user_id_fk: userId,
             transaction_datetime: {
@@ -345,7 +306,6 @@ const exportTransactionHistory = async (req, res, next) => {
             }
         };
 
-        // FIX (CRIT-02): Hard cap — COUNT dulu (1 query murah) sebelum fetch data besar
         const EXPORT_ROW_HARD_CAP = 10_000;
         const transactionCount = await Transaction.count({ where: whereCondition });
         if (transactionCount > EXPORT_ROW_HARD_CAP) {
@@ -397,7 +357,7 @@ const exportTransactionHistory = async (req, res, next) => {
         if (format === 'csv') {
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
             res.setHeader('Content-Disposition', `attachment; filename="${filenamePrefix}.csv"`);
-            res.write('\uFEFF'); // Tambahkan BOM untuk Excel
+            res.write('\uFEFF');
 
             // Tulis Header CSV manual menggunakan escapeCSV agar seragam
             const csvHeaders = columns.map(c => escapeCSV(c.header)).join(';') + '\n';
@@ -433,7 +393,6 @@ const exportTransactionHistory = async (req, res, next) => {
 
         // EscapeCSV sudah dipindah ke atas
 
-        // FIX: Terapkan Cursor Batching Setara ORM (limit + offset chunking) untuk melindungi V8 Heap Memory
         const batchSize = 100;
         let offset = 0;
         let hasMore = true;
@@ -441,7 +400,7 @@ const exportTransactionHistory = async (req, res, next) => {
         while (hasMore) {
             const transactions = await Transaction.findAll({
                 where: whereCondition,
-                order: [['transaction_datetime', 'DESC'], ['transaction_id', 'DESC']],
+                order: [['transaction_datetime', 'ASC'], ['transaction_id', 'ASC']],
                 limit: batchSize,
                 offset: offset,
                 include: [
@@ -470,14 +429,8 @@ const exportTransactionHistory = async (req, res, next) => {
             }
 
             transactions.forEach((tx) => {
-                // FIX (BUG-02): Gunakan moment-timezone yang konsisten dengan seluruh codebase.
-                // SEBELUMNYA: Intl.DateTimeFormat berpotensi double-shift jika MySQL session timezone
-                //             WIB (data masuk sebagai string WIB, di-parse Node.js sebagai UTC,
-                // FIX (BUG-02): Gunakan moment-timezone yang konsisten dengan seluruh codebase.
-                // SEBELUMNYA: Intl.DateTimeFormat berpotensi double-shift jika MySQL session timezone
-                //             WIB (data masuk sebagai string WIB, di-parse Node.js sebagai UTC,
                 const dateStr = tx.transaction_datetime
-                    ? moment.utc(tx.transaction_datetime).format('DD/MM/YYYY HH:mm:ss')
+                    ? moment(tx.transaction_datetime).tz('Asia/Jakarta').format('DD/MM/YYYY HH:mm:ss')
                     : '-';
                 const typeStr = tx.transaction_type === 'sell' ? 'Penjualan' : 'Restock';
                 const statusStr = tx.status === 'success' ? 'Sukses' : (tx.status === 'cancelled' ? 'Dibatalkan' : tx.status);
@@ -568,11 +521,6 @@ const exportTransactionHistory = async (req, res, next) => {
     }
 };
 
-// 4. Fungsi untuk rekap ringkasan transaksi
-// FIX (CRIT-01): Ganti pola N+1 Query dengan 2 query SQL aggregation paralel.
-// SEBELUM: findAll() semua transaksi + include detail → bisa N+1 query → loop di Node.js
-// SESUDAH: 2x aggregation query paralel → MySQL engine yang menghitung → Node.js hanya parsing
-// Untuk toko dengan 1000 transaksi: penghematan ~998 query dan ratusan MB RAM
 const getTransactionSummary = async (req, res, next) => {
     try {
         const userId = req.user.store_id;
@@ -581,7 +529,6 @@ const getTransactionSummary = async (req, res, next) => {
         // Bangun filter tanggal yang konsisten dengan endpoint lain (Op.between)
         const dateFilter = {};
         if (start && end) {
-            // FIX (BUG-A02): moment-timezone WIB — sama dengan getTransactionHistory.
             dateFilter.transaction_datetime = {
                 [Op.between]: [
                     moment.tz(start + ' 00:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Jakarta').toDate(),
@@ -662,13 +609,13 @@ const unlockOvertime = async (req, res, next) => {
 
         const isPinValid = await bcrypt.compare(pin, settings.emergency_pin);
         if (!isPinValid) {
-            return res.status(401).json({ message: "PIN Darurat salah." });
+            return res.status(400).json({ message: "PIN Darurat salah." });
         }
 
-        // Anti-Clock Drift: Gunakan literal query MySQL untuk +1 Jam
-        await sequelize.query(
-            "UPDATE Users SET overtime_unlocked_until = CURRENT_TIMESTAMP + INTERVAL 1 HOUR WHERE user_id = ?",
-            { replacements: [req.user.user_id || req.user.id], type: sequelize.QueryTypes.UPDATE }
+        const overtimeLimit = moment.utc().add(1, 'hour').toDate();
+        await User.update(
+            { overtime_unlocked_until: overtimeLimit },
+            { where: { user_id: req.user.user_id || req.user.id } }
         );
 
         res.json({ message: "Sesi lembur berhasil diaktifkan selama 1 jam." });

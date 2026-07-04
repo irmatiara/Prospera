@@ -1,12 +1,3 @@
-/**
- * analyticsService.js — Shared Analytics Query Layer
- * REFACTOR (B-T14/B-T15): Menghilangkan duplikasi query antara
- * analyticsController.js dan exportController.js.
- * 
- * Semua query keuangan terpusat di sini sebagai Single Source of Truth.
- * Jika ada bug fix atau perubahan filter, cukup ubah di satu tempat.
- */
-
 const { Transaction, TransactionDetail, Product, InventoryLog, Category } = require("../models");
 const { Op, fn, col, literal } = require("sequelize");
 const { getDateFilter, buildWIBDateRange } = require("../utils/dateUtils");
@@ -40,10 +31,6 @@ const getStatusBreakdown = async (startDate, endDate, userId) => {
 
 /**
  * Hitung ringkasan keuangan (items_sold, revenue, total_profit, total_loss)
- * PENTING: Hanya menghitung transaksi PENJUALAN (transaction_type = 'sell')
- * FIX (SPOILAGE-01): Menggabungkan 2 sumber kerugian:
- *   1. Kerugian Jual Rugi    — dari TransactionDetail (selling_price < capital_cost)
- *   2. Kerugian Kedaluwarsa  — dari InventoryLog (action = 'WRITE_OFF_EXPIRED')
  * @param {string} startDate 
  * @param {string} endDate 
  * @param {number} userId 
@@ -68,8 +55,6 @@ const getFinancialSummary = async (startDate, endDate, userId) => {
     });
 
     // Query 2: Kerugian dari pemusnahan stok kedaluwarsa (InventoryLog)
-    // FIX (SPOILAGE-01 + L1-02): Produk yang dimusnahkan karena expired = kerugian modal penuh.
-    // FIX (L1-02): Gunakan buildWIBDateRange — presisi 00:00:00 s/d 23:59:59 WIB
     const spoilageWhere = { 
         user_id_fk: userId, 
         action: 'WRITE_OFF_EXPIRED' 
@@ -88,9 +73,6 @@ const getFinancialSummary = async (startDate, endDate, userId) => {
 
     return {
         items_sold: parseInt(fin.items_sold) || 0,
-        // FIX (CRITICAL-02): Gunakan parseInt (bukan parseFloat) untuk nilai uang.
-        // Kolom DB adalah BIGINT — tidak ada desimal nyata. parseFloat bisa menghasilkan
-        // 120000.00000000001 akibat floating-point representation error.
         revenue: parseInt(fin.revenue) || 0,
         total_profit: parseInt(fin.total_profit) || 0,
         // total_loss = kerugian jual rugi + kerugian kedaluwarsa (gabungan 2 sumber)

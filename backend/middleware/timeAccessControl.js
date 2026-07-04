@@ -31,11 +31,6 @@ exports.checkTimeAccess = async (req, res, next) => {
             return next();
         }
 
-        // --- CEK OVERTIME UNLOCKED UNTIL (BACKEND-DRIVEN SESSION) ---
-        // FIX (BUG-OT-01): Gunakan req.user.user_id bukan req.user.id.
-        // JWT payload menyimpan field user_id — req.user.id selalu undefined,
-        // sehingga findByPk(undefined) selalu mengembalikan null dan sesi lembur
-        // tidak pernah terdeteksi meski sudah berhasil di-unlock via PIN.
         const userId = req.user.user_id || req.user.id;
         const user = await User.findByPk(userId);
         if (user && user.overtime_unlocked_until) {
@@ -59,12 +54,6 @@ exports.checkTimeAccess = async (req, res, next) => {
         
         const closeHourWithGrace = closeMoment.format('HH:mm:ss');
 
-        // FIX (BUG-A07): Refactor isTooEarly + isTooLate menjadi satu blok kondisional.
-        // SEBELUMNYA: isTooEarly dihitung di luar kondisi — untuk skenario lintas-hari
-        //             (misal buka 18:00, tutup 02:00), karyawan jam 01:00 WIB ditolak
-        //             karena isTooEarly = true (01:00 < 18:00) walau masih dalam jam kerja.
-        // SESUDAH   : Dua jalur terpisah (normal vs lintas-hari) masing-masing menghitung
-        //             kedua variabel secara independen dan benar.
         let isTooEarly = false;
         let isTooLate  = false;
 

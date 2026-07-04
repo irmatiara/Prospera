@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 
 /**
  * useDebounce — Hook debounce generik (enterprise pattern)
- * HIGH-07: Mencegah filtering/API-call berlebihan saat user mengetik.
  *
  * Cara kerja:
  *   - Setiap kali `value` berubah, timer 300ms direset.

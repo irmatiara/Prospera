@@ -19,7 +19,6 @@ const verifyToken = (req, res, next) => {
             return res.status(401).json({ message });
         }
         
-        // FIX (CRITICAL-05): Normalisasi role ke lowercase untuk memastikan
         // authorizeRole('owner') selalu cocok terlepas dari casing di JWT payload.
         // User yang didapat dari passport adalah instance Sequelize
         const userId = user.user_id;

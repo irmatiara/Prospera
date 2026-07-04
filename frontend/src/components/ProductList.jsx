@@ -1,12 +1,7 @@
-/**
- * ProductList.jsx — Daftar produk dengan pencarian dan pagination
- * REFACTOR (F-S02): Diekstrak dari Products.jsx untuk modularisasi.
- */
 import { useMemo } from 'react';
 import { formatRupiah } from '../utils/format';
 
 export default function ProductList({ products, searchTerm, onSearchChange, categories, selectedCategory, onCategoryChange, role, onEdit, onDelete, deletingId, pagination, onPageChange }) {
-    // PERFORMANCE FIX (F-S17): Memoize filter agar tidak dihitung ulang setiap render
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
             const nameMatch = (p.product_name || p.name || "").toLowerCase().includes(searchTerm.toLowerCase());
