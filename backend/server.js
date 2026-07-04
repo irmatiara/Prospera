@@ -51,31 +51,17 @@ app.use(compression());
 app.use(cookieParser());
 
 // Layer 3: CORS — Membatasi akses hanya dari origin yang diizinkan
-// FIX (CRIT-04): Tambahkan 'X-Idempotency-Key' ke allowedHeaders.
-// Tanpa ini, browser CORS preflight memblokir header kustom sebelum mencapai
-// controller, sehingga sistem anti-transaksi-duplikat di transactionController.js
-// (Line 35: req.headers['x-idempotency-key']) tidak pernah berfungsi.
-// X-Request-ID ditambahkan juga agar frontend bisa membaca requestId dari error response.
-// app.use(cors({
-//     origin: typeof CORS_ORIGIN === 'string' ? [CORS_ORIGIN, 'http://127.0.0.1:5173'] : CORS_ORIGIN,
-//     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//     allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key', 'X-Request-ID'],
-//     exposedHeaders: ['X-Request-ID'], // Izinkan frontend membaca header ini dari response
-//     credentials: true // FIX (V4.0): Wajib aktif agar frontend bisa mengirim dan menerima HttpOnly Cookie
-// }));
-// Layer 3: CORS — Membatasi akses hanya dari origin yang diizinkan
 app.use(cors({
-    // Daftarkan link lokal dan link Vercel kamu di sini agar tidak diblokir
     origin: [
         'http://localhost:5173',
-        'https://prospera-p7yhwoyjf-project-irma.vercel.app', // Tambahkan yang baru ini
+        'https://prospera-p7yhwoyjf-project-irma.vercel.app',
         'https://prospera-cdhoqccr4-project-irma.vercel.app',
         'https://prospera-phi-blue.vercel.app' 
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key', 'X-Request-ID'],
     exposedHeaders: ['X-Request-ID'],
-    credentials: true // Wajib aktif agar frontend bisa mengirim dan menerima HttpOnly Cookie
+    credentials: true
 }));
 
 // Layer 3: Rate Limiter Global — Anti DDoS untuk seluruh endpoint API
