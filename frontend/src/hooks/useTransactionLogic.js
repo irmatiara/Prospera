@@ -46,15 +46,18 @@ export function useTransactionLogic() {
             cartHook.setHargaJual("");
             return;
         }
-        if (!cartHook.modal) cartHook.setModal(String(cartHook.selectedProduct.product_cost ?? ""));
-        if (!cartHook.hargaJual) {
-            cartHook.setHargaJual(
-                String(cartHook.transactionType === "sell"
-                    ? cartHook.selectedProduct.product_price ?? cartHook.selectedProduct.product_cost
-                    : cartHook.selectedProduct.product_cost)
-            );
-        }
-    }, [cartHook.selectedProduct, cartHook.transactionType]);
+        
+        // Selalu perbarui harga Beli/Jual saat ganti produk atau ganti tipe transaksi (Restock/Sell)
+        // Hal ini menutupi bug dimana harga 'sell' (misal 45rb) nyangkut ke mode 'restock' (seharusnya 30rb)
+        cartHook.setModal(String(cartHook.selectedProduct.product_cost ?? ""));
+        cartHook.setHargaJual(
+            String(cartHook.transactionType === "sell"
+                ? cartHook.selectedProduct.product_price ?? cartHook.selectedProduct.product_cost
+                : cartHook.selectedProduct.product_cost)
+        );
+        
+    // FIX: Menggunakan nilai primitif (product_id) di Dependency Array untuk mencegah Infinite Loop
+    }, [cartHook.selectedProduct?.product_id, cartHook.transactionType]);
 
     // ========== INITIAL FETCH ==========
     useEffect(() => {
